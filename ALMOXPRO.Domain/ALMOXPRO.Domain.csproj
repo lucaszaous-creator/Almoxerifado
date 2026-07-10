@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ALMOXPRO.Shared\ALMOXPRO.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

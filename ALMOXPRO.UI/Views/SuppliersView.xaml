@@ -1,0 +1,128 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.SuppliersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                <TextBox Width="320" materialDesign:HintAssist.Hint="Pesquisar por razão social, fantasia ou CNPJ"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:TextFieldAssist.HasClearButton="True">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SearchSuppliersCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Margin="8,0,0,0" Command="{Binding SearchSuppliersCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Magnify" />
+                </Button>
+
+                <Button DockPanel.Dock="Right" Command="{Binding NewCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                        <TextBlock Text="NOVO FORNECEDOR" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding DeleteCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}">
+                    <materialDesign:PackIcon Kind="Delete" />
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding EditCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}">
+                    <materialDesign:PackIcon Kind="Pencil" />
+                </Button>
+            </DockPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding PreviousPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronLeft" />
+                </Button>
+                <TextBlock VerticalAlignment="Center" Margin="8,0">
+                    <Run Text="{Binding Page}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                </TextBlock>
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding NextPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronRight" />
+                </Button>
+            </StackPanel>
+
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                      AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Razão Social" Binding="{Binding CompanyName}" Width="*" />
+                    <DataGridTextColumn Header="Fantasia" Binding="{Binding TradeName}" Width="180" />
+                    <DataGridTextColumn Header="CNPJ" Binding="{Binding Cnpj}" Width="130" />
+                    <DataGridTextColumn Header="Cidade" Binding="{Binding City}" Width="130" />
+                    <DataGridTextColumn Header="UF" Binding="{Binding State}" Width="50" />
+                    <DataGridTextColumn Header="Telefone" Binding="{Binding Phone}" Width="120" />
+                    <DataGridTextColumn Header="Contato" Binding="{Binding ContactName}" Width="140" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <Border HorizontalAlignment="Right" Width="440"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Cadastro de Fornecedor" FontSize="18" FontWeight="SemiBold"
+                           Margin="0,0,0,16" />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="CANCELAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CancelEditCommand}" Margin="0,0,8,0" />
+                    <Button Content="SALVAR" Command="{Binding SaveCommand}" />
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <Setter Property="Margin" Value="0,0,0,12" />
+                            </Style>
+                        </StackPanel.Resources>
+                        <TextBox materialDesign:HintAssist.Hint="Razão Social *" Text="{Binding Editor.CompanyName}" />
+                        <TextBox materialDesign:HintAssist.Hint="Nome Fantasia" Text="{Binding Editor.TradeName}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="CNPJ *" Text="{Binding Editor.Cnpj}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Inscrição Estadual"
+                                     Text="{Binding Editor.StateRegistration}" />
+                        </Grid>
+                        <TextBox materialDesign:HintAssist.Hint="Endereço" Text="{Binding Editor.Address}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Cidade" Text="{Binding Editor.City}" />
+                            <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="UF"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      ItemsSource="{Binding States}" SelectedItem="{Binding Editor.State}"
+                                      Margin="0,0,0,12" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Telefone" Text="{Binding Editor.Phone}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="E-mail" Text="{Binding Editor.Email}" />
+                        </Grid>
+                        <TextBox materialDesign:HintAssist.Hint="Contato" Text="{Binding Editor.ContactName}" />
+                        <TextBox materialDesign:HintAssist.Hint="Observações" Text="{Binding Editor.Notes}"
+                                 TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60" />
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

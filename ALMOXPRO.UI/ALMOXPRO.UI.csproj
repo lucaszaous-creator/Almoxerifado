@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon />
+    <AssemblyName>ALMOXPRO</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ALMOXPRO.Application\ALMOXPRO.Application.csproj" />
+    <ProjectReference Include="..\ALMOXPRO.Infrastructure\ALMOXPRO.Infrastructure.csproj" />
+    <ProjectReference Include="..\ALMOXPRO.Persistence\ALMOXPRO.Persistence.csproj" />
+    <ProjectReference Include="..\ALMOXPRO.Shared\ALMOXPRO.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
