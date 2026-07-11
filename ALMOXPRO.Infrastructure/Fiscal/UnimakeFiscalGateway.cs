@@ -22,8 +22,68 @@ public class UnimakeFiscalGateway : IFiscalGateway
     {
         using var certificate = new X509Certificate2(pfxBytes, password,
             X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
-        return new CertificateInfo(certificate.Subject, certificate.Issuer,
-            certificate.NotBefore, certificate.NotAfter);
+        return ToInfo(certificate);
+    }
+
+    public IReadOnlyList<InstalledCertificate> ListInstalledCertificates()
+    {
+        var found = new List<InstalledCertificate>();
+        foreach (var location in new[] { StoreLocation.CurrentUser, StoreLocation.LocalMachine })
+        {
+            try
+            {
+                using var store = new X509Store(StoreName.My, location);
+                store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
+                foreach (var cert in store.Certificates)
+                {
+                    // Só certificados utilizáveis para assinar (com chave privada).
+                    if (cert.HasPrivateKey && !string.IsNullOrEmpty(cert.Thumbprint))
+                        found.Add(new InstalledCertificate(cert.Thumbprint, cert.Subject, cert.NotAfter));
+                }
+            }
+            catch (Exception)
+            {
+                // Repositório inexistente/sem acesso nesta localização: ignora.
+            }
+        }
+
+        return found
+            .GroupBy(c => c.Thumbprint)
+            .Select(g => g.First())
+            .OrderBy(c => c.Subject)
+            .ToList();
+    }
+
+    public CertificateInfo InspectStoreCertificate(string thumbprint)
+    {
+        using var certificate = LoadFromStore(thumbprint);
+        return ToInfo(certificate);
+    }
+
+    private static CertificateInfo ToInfo(X509Certificate2 cert) =>
+        new(cert.Subject, cert.Issuer, cert.NotBefore, cert.NotAfter);
+
+    private static X509Certificate2 LoadFromStore(string thumbprint)
+    {
+        var clean = thumbprint.Replace(" ", "").Trim();
+        foreach (var location in new[] { StoreLocation.CurrentUser, StoreLocation.LocalMachine })
+        {
+            try
+            {
+                using var store = new X509Store(StoreName.My, location);
+                store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
+                var match = store.Certificates.Find(X509FindType.FindByThumbprint, clean, validOnly: false);
+                if (match.Count > 0)
+                    return match[0];
+            }
+            catch (Exception)
+            {
+                // Tenta a próxima localização.
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Certificado não encontrado no repositório do Windows. Verifique se ainda está instalado.");
     }
 
     public Task<FiscalSyncResult> FetchDocumentsAsync(FiscalConfig config, string ultNsu,
@@ -117,11 +177,16 @@ public class UnimakeFiscalGateway : IFiscalGateway
     private static Configuracao BuildConfiguration(FiscalConfig config) => new()
     {
         TipoDFe = TipoDFe.NFe,
-        CertificadoDigital = new X509Certificate2(config.CertificatePfx, config.CertificatePassword,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet),
+        CertificadoDigital = LoadCertificate(config),
         CodigoUF = (int)ParseUf(config.Uf),
         TipoAmbiente = config.Production ? TipoAmbiente.Producao : TipoAmbiente.Homologacao
     };
+
+    private static X509Certificate2 LoadCertificate(FiscalConfig config) =>
+        !string.IsNullOrWhiteSpace(config.CertificateThumbprint)
+            ? LoadFromStore(config.CertificateThumbprint!)
+            : new X509Certificate2(config.CertificatePfx!, config.CertificatePassword,
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
 
     private static UFBrasil ParseUf(string uf) =>
         Enum.TryParse<UFBrasil>(uf.Trim().ToUpperInvariant(), out var parsed) ? parsed : UFBrasil.SP;

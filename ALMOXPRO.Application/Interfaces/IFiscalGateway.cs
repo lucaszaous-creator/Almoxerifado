@@ -1,12 +1,42 @@
 namespace ALMOXPRO.Application.Interfaces;
 
-/// <summary>Configuração fiscal usada nas chamadas à SEFAZ.</summary>
+/// <summary>
+/// Configuração fiscal usada nas chamadas à SEFAZ. O certificado vem do
+/// arquivo A1 enviado (CertificatePfx) OU do repositório do Windows
+/// (CertificateThumbprint) — exatamente um dos dois é preenchido.
+/// </summary>
 public record FiscalConfig(
-    byte[] CertificatePfx,
-    string CertificatePassword,
+    byte[]? CertificatePfx,
+    string? CertificatePassword,
+    string? CertificateThumbprint,
     string Cnpj,
     string Uf,
     bool Production);
+
+/// <summary>Dados que a tela de configuração envia ao gravar a config fiscal.</summary>
+public record FiscalConfigInput(
+    bool UseWindowsStore,
+    string? Thumbprint,
+    byte[]? PfxBytes,
+    string? PfxPassword,
+    string Cnpj,
+    string Uf,
+    bool Production);
+
+/// <summary>Certificado disponível no repositório do Windows.</summary>
+public record InstalledCertificate(string Thumbprint, string Subject, DateTime NotAfter)
+{
+    /// <summary>Nome amigável extraído do campo CN do titular.</summary>
+    public string DisplayName
+    {
+        get
+        {
+            var cn = Subject.Split(',').FirstOrDefault(p => p.TrimStart().StartsWith("CN=", StringComparison.OrdinalIgnoreCase));
+            var name = cn?.Trim()[3..] ?? Subject;
+            return $"{name}  (válido até {NotAfter:dd/MM/yyyy})";
+        }
+    }
+}
 
 /// <summary>Documento retornado pela Distribuição DF-e (XML bruto por NSU).</summary>
 public record FiscalSyncDocument(string Nsu, string Schema, string Xml);
@@ -48,6 +78,12 @@ public interface IFiscalGateway
 
     /// <summary>Valida o certificado A1 (.pfx) e retorna titular e validade.</summary>
     CertificateInfo InspectCertificate(byte[] pfxBytes, string password);
+
+    /// <summary>Lista os certificados com chave privada instalados no repositório do Windows.</summary>
+    IReadOnlyList<InstalledCertificate> ListInstalledCertificates();
+
+    /// <summary>Valida um certificado instalado no Windows pelo thumbprint.</summary>
+    CertificateInfo InspectStoreCertificate(string thumbprint);
 }
 
 /// <summary>Geração do DANFE (visualização/impressão) a partir do XML procNFe.</summary>

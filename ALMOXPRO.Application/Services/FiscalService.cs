@@ -25,11 +25,13 @@ public interface IFiscalService
     /// <summary>Gera o DANFE (PDF). Exige o XML completo (após Ciência + nova sincronização).</summary>
     Task<Result<byte[]>> GetDanfePdfAsync(int documentId, CancellationToken ct = default);
 
-    /// <summary>Valida e grava o certificado A1 e os dados fiscais da empresa.</summary>
-    Task<Result<CertificateInfo>> SaveConfigurationAsync(byte[]? pfxBytes, string? password,
-        string cnpj, string uf, bool production, CancellationToken ct = default);
+    /// <summary>Valida e grava o certificado (arquivo A1 ou instalado no Windows) e os dados fiscais.</summary>
+    Task<Result<CertificateInfo>> SaveConfigurationAsync(FiscalConfigInput input, CancellationToken ct = default);
 
     Task<CertificateInfo?> GetCertificateInfoAsync(CancellationToken ct = default);
+
+    /// <summary>Certificados instalados no Windows, para escolha na tela de configuração.</summary>
+    IReadOnlyList<InstalledCertificate> ListInstalledCertificates();
 }
 
 public record FiscalSyncSummary(int NewDocuments, int UpdatedDocuments, string UltNsu);
@@ -69,6 +71,9 @@ public class FiscalService : IFiscalService
 
     public async Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default)
     {
+        if (await IsDemoModeAsync(ct))
+            return await SyncDemoAsync(ct);
+
         var configResult = await LoadConfigAsync(ct);
         if (configResult.IsFailure)
             return Result.Failure<FiscalSyncSummary>(configResult.Errors);
@@ -164,14 +169,18 @@ public class FiscalService : IFiscalService
         if (document is null)
             return Result.Failure("Nota fiscal não encontrada.");
 
-        var configResult = await LoadConfigAsync(ct);
-        if (configResult.IsFailure)
-            return Result.Failure(configResult.Errors);
+        // Modo demonstração: registra a manifestação localmente, sem a SEFAZ.
+        if (!await IsDemoModeAsync(ct))
+        {
+            var configResult = await LoadConfigAsync(ct);
+            if (configResult.IsFailure)
+                return Result.Failure(configResult.Errors);
 
-        var result = await _gateway.SendManifestationAsync(configResult.Value,
-            document.AccessKey, type, justification, ct);
-        if (!result.Success)
-            return Result.Failure($"SEFAZ recusou o evento ({result.StatusCode}): {result.Message}");
+            var result = await _gateway.SendManifestationAsync(configResult.Value,
+                document.AccessKey, type, justification, ct);
+            if (!result.Success)
+                return Result.Failure($"SEFAZ recusou o evento ({result.StatusCode}): {result.Message}");
+        }
 
         var newStatus = type switch
         {
@@ -198,34 +207,56 @@ public class FiscalService : IFiscalService
         return Result.Success(_danfe.GeneratePdf(document.Xml));
     }
 
-    public async Task<Result<CertificateInfo>> SaveConfigurationAsync(byte[]? pfxBytes, string? password,
-        string cnpj, string uf, bool production, CancellationToken ct = default)
+    public IReadOnlyList<InstalledCertificate> ListInstalledCertificates() =>
+        _gateway.ListInstalledCertificates();
+
+    public async Task<Result<CertificateInfo>> SaveConfigurationAsync(FiscalConfigInput input,
+        CancellationToken ct = default)
     {
-        var digits = new string(cnpj.Where(char.IsDigit).ToArray());
+        var digits = new string(input.Cnpj.Where(char.IsDigit).ToArray());
         if (digits.Length != 14)
             return Result.Failure<CertificateInfo>("Informe o CNPJ da empresa (14 dígitos).");
-        if (string.IsNullOrWhiteSpace(uf))
+        if (string.IsNullOrWhiteSpace(input.Uf))
             return Result.Failure<CertificateInfo>("Selecione a UF da empresa.");
 
         CertificateInfo info;
-        if (pfxBytes is not null)
+        if (input.UseWindowsStore)
         {
-            // Novo certificado enviado: valida antes de gravar.
+            if (string.IsNullOrWhiteSpace(input.Thumbprint))
+                return Result.Failure<CertificateInfo>("Selecione um certificado instalado no Windows.");
             try
             {
-                info = _gateway.InspectCertificate(pfxBytes, password ?? string.Empty);
+                info = _gateway.InspectStoreCertificate(input.Thumbprint);
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure<CertificateInfo>($"Não foi possível usar o certificado selecionado: {ex.Message}");
+            }
+
+            await SaveSettingAsync(SettingKeys.FiscalCertificateSource, "store", ct);
+            await SaveSettingAsync(SettingKeys.FiscalCertificateThumbprint, input.Thumbprint, ct);
+        }
+        else if (input.PfxBytes is not null)
+        {
+            // Novo arquivo enviado: valida antes de gravar.
+            try
+            {
+                info = _gateway.InspectCertificate(input.PfxBytes, input.PfxPassword ?? string.Empty);
             }
             catch (Exception ex)
             {
                 return Result.Failure<CertificateInfo>($"Certificado inválido ou senha incorreta: {ex.Message}");
             }
 
-            await SaveSettingAsync(SettingKeys.FiscalCertificatePfx, Convert.ToBase64String(pfxBytes), ct);
+            await SaveSettingAsync(SettingKeys.FiscalCertificateSource, "pfx", ct);
+            await SaveSettingAsync(SettingKeys.FiscalCertificatePfx, Convert.ToBase64String(input.PfxBytes), ct);
             await SaveSettingAsync(SettingKeys.FiscalCertificatePassword,
-                SecretProtector.Protect(password ?? string.Empty), ct);
+                SecretProtector.Protect(input.PfxPassword ?? string.Empty), ct);
         }
         else
         {
+            // Manteve o arquivo já configurado: apenas revalida.
+            await SaveSettingAsync(SettingKeys.FiscalCertificateSource, "pfx", ct);
             var current = await GetCertificateInfoAsync(ct);
             if (current is null)
                 return Result.Failure<CertificateInfo>("Envie o arquivo do certificado A1 (.pfx).");
@@ -233,8 +264,8 @@ public class FiscalService : IFiscalService
         }
 
         await SaveSettingAsync(SettingKeys.FiscalCnpj, digits, ct);
-        await SaveSettingAsync(SettingKeys.FiscalUf, uf.Trim().ToUpperInvariant(), ct);
-        await SaveSettingAsync(SettingKeys.FiscalProduction, production ? "true" : "false", ct);
+        await SaveSettingAsync(SettingKeys.FiscalUf, input.Uf.Trim().ToUpperInvariant(), ct);
+        await SaveSettingAsync(SettingKeys.FiscalProduction, input.Production ? "true" : "false", ct);
         await _uow.SaveChangesAsync(ct);
         return Result.Success(info);
     }
@@ -246,7 +277,9 @@ public class FiscalService : IFiscalService
             return null;
         try
         {
-            return _gateway.InspectCertificate(config.Value.CertificatePfx, config.Value.CertificatePassword);
+            return !string.IsNullOrWhiteSpace(config.Value.CertificateThumbprint)
+                ? _gateway.InspectStoreCertificate(config.Value.CertificateThumbprint!)
+                : _gateway.InspectCertificate(config.Value.CertificatePfx!, config.Value.CertificatePassword ?? string.Empty);
         }
         catch (Exception)
         {
@@ -254,22 +287,86 @@ public class FiscalService : IFiscalService
         }
     }
 
+    private async Task<bool> IsDemoModeAsync(CancellationToken ct) =>
+        (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalDemoMode, ct))?.Value == "true";
+
+    /// <summary>
+    /// Simula a Distribuição DF-e com notas fictícias: cria os documentos de
+    /// exemplo e, para os que já tiveram a Ciência registrada, "libera" o XML
+    /// completo — reproduzindo o ciclo real resumo → ciência → nota completa.
+    /// </summary>
+    private async Task<Result<FiscalSyncSummary>> SyncDemoAsync(CancellationToken ct)
+    {
+        var newCount = 0;
+        var updatedCount = 0;
+
+        foreach (var demo in FiscalDemoData.Documents)
+        {
+            var existing = await _uow.FiscalDocuments.GetByAccessKeyAsync(demo.AccessKey, ct);
+            if (existing is null)
+            {
+                var xml = demo.StartsWithFullXml ? demo.FullXml : demo.SummaryXml;
+                var parsed = demo.StartsWithFullXml
+                    ? FiscalXmlParser.ParseProcNFe(xml)
+                    : FiscalXmlParser.ParseResNFe(xml);
+
+                await _uow.FiscalDocuments.AddAsync(new FiscalDocument
+                {
+                    AccessKey = parsed.AccessKey,
+                    Nsu = demo.Nsu,
+                    EmitterCnpj = parsed.EmitterCnpj,
+                    EmitterName = parsed.EmitterName,
+                    IssuedAt = parsed.IssuedAt,
+                    TotalValue = parsed.TotalValue,
+                    HasFullXml = demo.StartsWithFullXml,
+                    Xml = xml
+                }, ct);
+                newCount++;
+            }
+            else if (!existing.HasFullXml && existing.Status != FiscalDocumentStatus.Recebida)
+            {
+                // Após a Ciência, a SEFAZ libera o XML completo.
+                existing.HasFullXml = true;
+                existing.Xml = demo.FullXml;
+                updatedCount++;
+            }
+        }
+
+        await _uow.SaveChangesAsync(ct);
+        _logger.LogInformation("Sincronização DEMO: {New} novas, {Updated} atualizadas", newCount, updatedCount);
+        return Result.Success(new FiscalSyncSummary(newCount, updatedCount, "demo"));
+    }
+
     private async Task<Result<FiscalConfig>> LoadConfigAsync(CancellationToken ct)
     {
-        var pfx = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePfx, ct))?.Value;
-        var password = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePassword, ct))?.Value;
         var cnpj = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCnpj, ct))?.Value;
         var uf = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalUf, ct))?.Value;
         var production = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalProduction, ct))?.Value != "false";
+        var source = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificateSource, ct))?.Value ?? "pfx";
 
-        if (string.IsNullOrWhiteSpace(pfx) || string.IsNullOrWhiteSpace(cnpj) || string.IsNullOrWhiteSpace(uf))
+        if (string.IsNullOrWhiteSpace(cnpj) || string.IsNullOrWhiteSpace(uf))
             return Result.Failure<FiscalConfig>(
-                "Configuração fiscal incompleta. Em Configurações, envie o certificado A1 e informe CNPJ e UF.");
+                "Configuração fiscal incompleta. Em Configurações, informe o certificado, o CNPJ e a UF.");
+
+        if (source == "store")
+        {
+            var thumbprint = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificateThumbprint, ct))?.Value;
+            if (string.IsNullOrWhiteSpace(thumbprint))
+                return Result.Failure<FiscalConfig>(
+                    "Selecione o certificado instalado no Windows em Configurações.");
+            return Result.Success(new FiscalConfig(null, null, thumbprint, cnpj, uf, production));
+        }
+
+        var pfx = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePfx, ct))?.Value;
+        var password = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePassword, ct))?.Value;
+        if (string.IsNullOrWhiteSpace(pfx))
+            return Result.Failure<FiscalConfig>(
+                "Configuração fiscal incompleta. Em Configurações, envie o certificado A1.");
 
         return Result.Success(new FiscalConfig(
             Convert.FromBase64String(pfx),
             string.IsNullOrEmpty(password) ? string.Empty : SecretProtector.Unprotect(password),
-            cnpj, uf, production));
+            null, cnpj, uf, production));
     }
 
     private async Task SaveSettingAsync(string key, string value, CancellationToken ct)

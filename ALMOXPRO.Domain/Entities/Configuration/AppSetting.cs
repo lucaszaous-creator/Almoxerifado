@@ -31,6 +31,10 @@ public static class SettingKeys
     public const string FiscalUltNsu = "fiscal.ult_nsu";
     public const string FiscalCertificatePfx = "fiscal.cert_pfx";
     public const string FiscalCertificatePassword = "fiscal.cert_password";
+    /// <summary>Origem do certificado: "pfx" (arquivo enviado) ou "store" (repositório do Windows).</summary>
+    public const string FiscalCertificateSource = "fiscal.cert_source";
+    public const string FiscalCertificateThumbprint = "fiscal.cert_thumbprint";
+    public const string FiscalDemoMode = "fiscal.demo_mode";
     public const string LabelPrinter = "printers.label";
     public const string ReportPrinter = "printers.report";
     public const string ReportsDirectory = "directories.reports";

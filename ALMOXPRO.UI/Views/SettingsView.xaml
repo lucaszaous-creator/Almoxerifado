@@ -133,6 +133,11 @@
                     </StackPanel>
                     <TextBlock Text="{Binding FiscalCertStatus}" TextWrapping="Wrap" Margin="0,0,0,12"
                                Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                    <CheckBox Content="Modo demonstração (testar sem certificado, com notas de exemplo)"
+                              IsChecked="{Binding FiscalDemoMode}" Margin="0,0,0,4" />
+                    <TextBlock Text="Ligue para experimentar o fluxo de NF-e (sincronizar, ciência, DANFE, recusar) sem SEFAZ. Desligue para usar o certificado real."
+                               TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*" />
@@ -147,28 +152,57 @@
                                   Margin="0,0,0,12" />
                     </Grid>
                     <CheckBox Content="Ambiente de produção (desmarque para testes em homologação)"
-                              IsChecked="{Binding FiscalProduction}" Margin="0,0,0,12" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="8" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Command="{Binding SelectFiscalCertificateCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Top">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Upload" VerticalAlignment="Center" />
-                                <TextBlock Text="CERTIFICADO A1" Margin="6,0,0,0" />
-                            </StackPanel>
-                        </Button>
-                        <TextBlock Grid.Column="2" Text="{Binding FiscalCertFileName}" VerticalAlignment="Center"
-                                   Opacity="0.7" TextTrimming="CharacterEllipsis" />
-                    </Grid>
-                    <TextBox materialDesign:HintAssist.Hint="Senha do certificado"
-                             Text="{Binding FiscalCertPassword, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="0,12,0,12" />
+                              IsChecked="{Binding FiscalProduction}" Margin="0,0,0,8" />
+
+                    <CheckBox Content="Usar certificado instalado no Windows (dispensa o arquivo; necessário para token A3)"
+                              IsChecked="{Binding FiscalUseWindowsStore}" Margin="0,0,0,8" />
+
+                    <!-- Origem: certificado instalado no Windows -->
+                    <StackPanel Visibility="{Binding FiscalUseWindowsStore, Converter={StaticResource BoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Certificado instalado *"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      ItemsSource="{Binding InstalledCertificates}"
+                                      SelectedItem="{Binding SelectedCertificate}"
+                                      DisplayMemberPath="DisplayName" Margin="0,0,0,12" />
+                            <Button Grid.Column="2" Command="{Binding RefreshCertificatesCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Top"
+                                    ToolTip="Atualizar lista de certificados do Windows">
+                                <materialDesign:PackIcon Kind="Refresh" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Origem: arquivo A1 (.pfx) -->
+                    <StackPanel Visibility="{Binding FiscalUseWindowsStore, Converter={StaticResource InverseBoolToVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Command="{Binding SelectFiscalCertificateCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Upload" VerticalAlignment="Center" />
+                                    <TextBlock Text="CERTIFICADO A1" Margin="6,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Grid.Column="2" Text="{Binding FiscalCertFileName}" VerticalAlignment="Center"
+                                       Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                        <TextBox materialDesign:HintAssist.Hint="Senha do certificado"
+                                 Text="{Binding FiscalCertPassword, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,12,0,12" />
+                    </StackPanel>
+
                     <Button Content="SALVAR CONFIGURAÇÃO FISCAL" Command="{Binding SaveFiscalConfigCommand}"
-                            HorizontalAlignment="Left" />
+                            HorizontalAlignment="Left" Margin="0,4,0,0" />
                 </StackPanel>
             </materialDesign:Card>
 

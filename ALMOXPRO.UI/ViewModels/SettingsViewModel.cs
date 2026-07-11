@@ -65,6 +65,19 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _fiscalCertStatus = string.Empty;
 
+    /// <summary>Modo demonstração: simula a SEFAZ com notas de exemplo, sem certificado.</summary>
+    [ObservableProperty]
+    private bool _fiscalDemoMode;
+
+    /// <summary>Origem do certificado: false = arquivo A1 (.pfx); true = instalado no Windows.</summary>
+    [ObservableProperty]
+    private bool _fiscalUseWindowsStore;
+
+    [ObservableProperty]
+    private Application.Interfaces.InstalledCertificate? _selectedCertificate;
+
+    public ObservableCollection<Application.Interfaces.InstalledCertificate> InstalledCertificates { get; } = [];
+
     private byte[]? _fiscalCertBytes;
 
     public string[] Ufs { get; } =
@@ -115,8 +128,18 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalCnpj = all.GetValueOrDefault(SettingKeys.FiscalCnpj) ?? string.Empty;
         FiscalUf = all.GetValueOrDefault(SettingKeys.FiscalUf) ?? string.Empty;
         FiscalProduction = all.GetValueOrDefault(SettingKeys.FiscalProduction) != "false";
+        FiscalDemoMode = all.GetValueOrDefault(SettingKeys.FiscalDemoMode) == "true";
+        FiscalUseWindowsStore = all.GetValueOrDefault(SettingKeys.FiscalCertificateSource) == "store";
 
         var fiscal = services.GetRequiredService<IFiscalService>();
+
+        // Lista os certificados instalados no Windows e pré-seleciona o atual.
+        InstalledCertificates.Clear();
+        foreach (var cert in fiscal.ListInstalledCertificates())
+            InstalledCertificates.Add(cert);
+        var currentThumb = all.GetValueOrDefault(SettingKeys.FiscalCertificateThumbprint);
+        SelectedCertificate = InstalledCertificates.FirstOrDefault(c => c.Thumbprint == currentThumb);
+
         var certificate = await fiscal.GetCertificateInfoAsync();
         FiscalCertStatus = certificate is null
             ? "Nenhum certificado configurado."
@@ -138,9 +161,27 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private Task SaveFiscalConfigAsync() => RunAsync(async services =>
     {
+        var settings = services.GetRequiredService<ISettingsService>();
+        await settings.SetAsync(SettingKeys.FiscalDemoMode, FiscalDemoMode ? "true" : "false");
+
+        // No modo demonstração não é preciso certificado nem CNPJ/UF válidos.
+        if (FiscalDemoMode)
+        {
+            Dialog.Notify("Modo demonstração ativado. Em Notas Fiscais, clique em SINCRONIZAR SEFAZ para carregar notas de exemplo.");
+            return;
+        }
+
         var fiscal = services.GetRequiredService<IFiscalService>();
-        var result = await fiscal.SaveConfigurationAsync(
-            _fiscalCertBytes, FiscalCertPassword, FiscalCnpj, FiscalUf, FiscalProduction);
+        var input = new Application.Interfaces.FiscalConfigInput(
+            UseWindowsStore: FiscalUseWindowsStore,
+            Thumbprint: SelectedCertificate?.Thumbprint,
+            PfxBytes: _fiscalCertBytes,
+            PfxPassword: FiscalCertPassword,
+            Cnpj: FiscalCnpj,
+            Uf: FiscalUf,
+            Production: FiscalProduction);
+
+        var result = await fiscal.SaveConfigurationAsync(input);
         if (result.IsFailure)
         {
             Dialog.ShowError(string.Join("\n", result.Errors));
@@ -152,6 +193,18 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalCertFileName = string.Empty;
         FiscalCertStatus = $"Certificado: {result.Value.Subject}\nVálido até {result.Value.NotAfter:dd/MM/yyyy}";
         Dialog.Notify("Configuração fiscal salva. Use SINCRONIZAR SEFAZ na tela Notas Fiscais.");
+    });
+
+    [RelayCommand]
+    private Task RefreshCertificatesAsync() => RunAsync(services =>
+    {
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        InstalledCertificates.Clear();
+        foreach (var cert in fiscal.ListInstalledCertificates())
+            InstalledCertificates.Add(cert);
+        if (InstalledCertificates.Count == 0)
+            Dialog.ShowInfo("Nenhum certificado com chave privada foi encontrado no Windows desta máquina.");
+        return Task.CompletedTask;
     });
 
     [RelayCommand]
