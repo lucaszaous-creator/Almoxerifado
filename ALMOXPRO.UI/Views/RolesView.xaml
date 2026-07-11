@@ -1,0 +1,84 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.RolesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                <Button Command="{Binding RefreshCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Refresh" />
+                </Button>
+
+                <Button DockPanel.Dock="Right" Command="{Binding NewCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ShieldPlus" VerticalAlignment="Center" />
+                        <TextBlock Text="NOVO PERFIL" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding DeleteCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}">
+                    <materialDesign:PackIcon Kind="Delete" />
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding EditCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}">
+                    <materialDesign:PackIcon Kind="Pencil" />
+                </Button>
+            </DockPanel>
+
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                      AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Perfil" Binding="{Binding Name}" Width="200" />
+                    <DataGridTextColumn Header="Descrição" Binding="{Binding Description}" Width="*" />
+                    <DataGridCheckBoxColumn Header="Sistema" Binding="{Binding IsSystem}" Width="80" />
+                    <DataGridTextColumn Header="Permissões" Binding="{Binding PermissionCodes.Count}" Width="100" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <Border HorizontalAlignment="Right" Width="480"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Perfil de Acesso" FontSize="18" FontWeight="SemiBold"
+                           Margin="0,0,0,16" />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="CANCELAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CancelEditCommand}" Margin="0,0,8,0" />
+                    <Button Content="SALVAR" Command="{Binding SaveCommand}" />
+                </StackPanel>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBox materialDesign:HintAssist.Hint="Nome *"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding EditingName}" Margin="0,0,0,12" />
+                        <TextBox materialDesign:HintAssist.Hint="Descrição"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding EditingDescription}" Margin="0,0,0,12" />
+                        <TextBlock Text="Permissões" FontWeight="SemiBold" Margin="0,4,0,8" />
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding PermissionOptions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,4">
+                                        <TextBlock>
+                                            <Run Text="{Binding Description, Mode=OneWay}" />
+                                            <Run Text="{Binding Code, Mode=OneWay, StringFormat=' ({0})'}"
+                                                 Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                                        </TextBlock>
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

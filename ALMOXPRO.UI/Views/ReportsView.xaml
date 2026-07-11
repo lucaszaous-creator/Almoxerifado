@@ -1,0 +1,52 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <DockPanel>
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <ComboBox Width="240" materialDesign:HintAssist.Hint="Relatório"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding Reports}" DisplayMemberPath="Label"
+                      SelectedItem="{Binding SelectedReport}" Margin="0,0,8,8" />
+            <DatePicker Width="150" materialDesign:HintAssist.Hint="De"
+                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                        SelectedDate="{Binding From}" Margin="0,0,8,8" />
+            <DatePicker Width="150" materialDesign:HintAssist.Hint="Até"
+                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                        SelectedDate="{Binding To}" Margin="0,0,8,8" />
+            <Button Command="{Binding GenerateCommand}" VerticalAlignment="Center" Margin="0,0,8,8">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileChart" VerticalAlignment="Center" />
+                    <TextBlock Text="GERAR" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding ExportPdfCommand}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    VerticalAlignment="Center" Margin="0,0,8,8" ToolTip="Exportar PDF">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
+                    <TextBlock Text="PDF" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding ExportExcelCommand}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    VerticalAlignment="Center" Margin="0,0,8,8" ToolTip="Exportar Excel">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileExcelBox" VerticalAlignment="Center" />
+                    <TextBlock Text="EXCEL" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+            <Button Command="{Binding ExportCsvCommand}" Style="{StaticResource MaterialDesignOutlinedButton}"
+                    VerticalAlignment="Center" Margin="0,0,8,8" ToolTip="Exportar CSV">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileDelimited" VerticalAlignment="Center" />
+                    <TextBlock Text="CSV" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+        </WrapPanel>
+
+        <TextBlock DockPanel.Dock="Top" Text="{Binding PreviewInfo}" Margin="0,0,0,8"
+                   Foreground="{DynamicResource MaterialDesignBodyLight}" />
+
+        <DataGrid ItemsSource="{Binding Preview}" AutoGenerateColumns="True" IsReadOnly="True"
+                  CanUserAddRows="False" />
+    </DockPanel>
+</UserControl>

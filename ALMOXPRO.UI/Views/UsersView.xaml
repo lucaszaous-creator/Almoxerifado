@@ -1,0 +1,136 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.UsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                <TextBox Width="320" materialDesign:HintAssist.Hint="Pesquisar por nome, login ou e-mail"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:TextFieldAssist.HasClearButton="True">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SearchUsersCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Margin="8,0,0,0" Command="{Binding SearchUsersCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Magnify" />
+                </Button>
+
+                <Button DockPanel.Dock="Right" Command="{Binding NewCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountPlus" VerticalAlignment="Center" />
+                        <TextBlock Text="NOVO USUÁRIO" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding DeactivateCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                        ToolTip="Inativar usuário">
+                    <materialDesign:PackIcon Kind="AccountOff" />
+                </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding EditCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}">
+                    <materialDesign:PackIcon Kind="Pencil" />
+                </Button>
+            </DockPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding PreviousPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronLeft" />
+                </Button>
+                <TextBlock VerticalAlignment="Center" Margin="8,0">
+                    <Run Text="{Binding Page}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                </TextBlock>
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding NextPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronRight" />
+                </Button>
+            </StackPanel>
+
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                      AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+                    <DataGridTextColumn Header="Login" Binding="{Binding Login}" Width="120" />
+                    <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="200" />
+                    <DataGridTextColumn Header="Departamento" Binding="{Binding Department}" Width="130" />
+                    <DataGridTextColumn Header="Cargo" Binding="{Binding JobTitle}" Width="130" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
+                    <DataGridTextColumn Header="Criado em" Binding="{Binding CreatedAt, StringFormat=dd/MM/yyyy}" Width="100" />
+                    <DataGridTextColumn Header="Último acesso" Binding="{Binding LastAccessAt, StringFormat=dd/MM/yyyy HH:mm}" Width="130" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <Border HorizontalAlignment="Right" Width="460"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Cadastro de Usuário" FontSize="18" FontWeight="SemiBold"
+                           Margin="0,0,0,16" />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="CANCELAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CancelEditCommand}" Margin="0,0,8,0" />
+                    <Button Content="SALVAR" Command="{Binding SaveCommand}" />
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <Setter Property="Margin" Value="0,0,0,12" />
+                            </Style>
+                        </StackPanel.Resources>
+                        <TextBox materialDesign:HintAssist.Hint="Nome *" Text="{Binding Editor.Name}" />
+                        <TextBox materialDesign:HintAssist.Hint="E-mail *" Text="{Binding Editor.Email}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Login *" Text="{Binding Editor.Login}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Senha (vazio mantém a atual)"
+                                     Text="{Binding NewPassword, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Telefone" Text="{Binding Editor.Phone}" />
+                            <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Status"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      ItemsSource="{Binding Statuses}" SelectedItem="{Binding Editor.Status}"
+                                      Margin="0,0,0,12" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Departamento"
+                                     Text="{Binding Editor.Department}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Cargo"
+                                     Text="{Binding Editor.JobTitle}" />
+                        </Grid>
+
+                        <TextBlock Text="Perfis de acesso" FontWeight="SemiBold" Margin="0,4,0,8" />
+                        <ItemsControl ItemsSource="{Binding RoleOptions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="0,0,0,4" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

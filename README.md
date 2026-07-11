@@ -1,5 +1,69 @@
 # 📦 Almoxarifado & Compras
 
+Este repositório contém **duas aplicações**:
+
+1. **ALMOX PRO** — sistema desktop (Windows/WPF) completo de gestão de
+   almoxarifado. Veja a seção [ALMOX PRO (desktop)](#-almox-pro-desktop).
+2. **Almoxarifado & Compras (web)** — sistema web (Next.js + Supabase)
+   documentado no restante deste README.
+
+---
+
+## 🖥️ ALMOX PRO (desktop)
+
+Software desktop corporativo de gestão de almoxarifado em **C# / .NET 8**,
+com **WPF + MVVM (CommunityToolkit.Mvvm) + Material Design in XAML** e
+banco **PostgreSQL** via **Entity Framework Core** (migrations incluídas).
+
+### Arquitetura (Clean Architecture)
+
+```
+ALMOXPRO.Domain          # entidades e regras de negócio (sem dependências)
+ALMOXPRO.Application     # serviços, DTOs, validações (FluentValidation), interfaces
+ALMOXPRO.Infrastructure  # PDF (QuestPDF), Excel (ClosedXML), barcode (ZXing.Net),
+                         # QR Code (QRCoder), backup (pg_dump), e-mail, hash PBKDF2
+ALMOXPRO.Persistence     # EF Core + Npgsql, repositórios, Unit of Work,
+                         # migrations, seed e interceptor de auditoria
+ALMOXPRO.UI              # WPF: views, viewmodels, tema claro/escuro, sessão
+ALMOXPRO.Shared          # Result, paginação, códigos de permissão (RBAC)
+ALMOXPRO.Tests           # testes unitários (xUnit)
+```
+
+### Módulos
+
+Login e sessão · usuários · perfis/permissões (RBAC) · auditoria completa ·
+produtos (código de barras, QR Code, lote, validade, patrimônio) · categorias
+e subcategorias · fornecedores (validação de CNPJ) · localizações com etiqueta
+QR · entradas · saídas · transferências entre almoxarifados · inventário
+geral/rotativo com leitura de código de barras · dashboard (curva ABC,
+críticos, vencidos) · relatórios com exportação **PDF / Excel / CSV** ·
+etiquetas · backup/restauração do PostgreSQL · configurações.
+
+### Como rodar (Windows)
+
+1. Instale o [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+   e um PostgreSQL local (ou aponte para um servidor).
+2. Ajuste a connection string em `ALMOXPRO.UI/appsettings.json`.
+3. Compile e execute:
+   ```bash
+   dotnet build ALMOXPRO.sln
+   dotnet run --project ALMOXPRO.UI
+   ```
+   Na primeira execução as migrations são aplicadas e o seed cria o usuário
+   administrador inicial (`admin`).
+4. Testes:
+   ```bash
+   dotnet test ALMOXPRO.Tests/ALMOXPRO.Tests.csproj
+   ```
+
+> Em Linux/macOS o código compila com
+> `dotnet build ALMOXPRO.sln -p:EnableWindowsTargeting=true`
+> (a execução da interface WPF requer Windows).
+
+---
+
+## 🌐 Almoxarifado & Compras (web)
+
 Sistema web para controle do almoxarifado e pedidos de compra, pensado para
 reduzir o tempo perdido pelos funcionários procurando itens e dar visibilidade
 ao **gerente** e ao **responsável pelo almoxarifado (almoxarife)**.

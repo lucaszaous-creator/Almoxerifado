@@ -1,0 +1,186 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.ExitsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                <TextBox Width="320" materialDesign:HintAssist.Hint="Pesquisar por número"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:TextFieldAssist.HasClearButton="True">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SearchExitsCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Margin="8,0,0,0" Command="{Binding SearchExitsCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Magnify" />
+                </Button>
+
+                <Button DockPanel.Dock="Right" Command="{Binding NewCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                        <TextBlock Text="NOVA SAÍDA" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding PreviousPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronLeft" />
+                </Button>
+                <TextBlock VerticalAlignment="Center" Margin="8,0">
+                    <Run Text="{Binding Page}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                </TextBlock>
+                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding NextPageCommand}">
+                    <materialDesign:PackIcon Kind="ChevronRight" />
+                </Button>
+            </StackPanel>
+
+            <DataGrid ItemsSource="{Binding Items}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Número" Binding="{Binding Number}" Width="110" />
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding Type}" Width="110" />
+                    <DataGridTextColumn Header="Almoxarifado" Binding="{Binding WarehouseName}" Width="*" />
+                    <DataGridTextColumn Header="Centro de Custo" Binding="{Binding CostCenterName}" Width="140" />
+                    <DataGridTextColumn Header="Funcionário" Binding="{Binding EmployeeName}" Width="150" />
+                    <DataGridTextColumn Header="Setor" Binding="{Binding SectorName}" Width="120" />
+                    <DataGridTextColumn Header="Data" Binding="{Binding ExitDate, StringFormat=dd/MM/yyyy HH:mm}" Width="140" />
+                    <DataGridTextColumn Header="Valor" Binding="{Binding TotalValue, StringFormat=C2}" Width="100" />
+                    <DataGridTextColumn Header="Itens" Binding="{Binding ItemCount}" Width="60" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <Border HorizontalAlignment="Right" Width="640"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Nova Saída de Materiais" FontSize="18" FontWeight="SemiBold"
+                           Margin="0,0,0,16" />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="CANCELAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CancelEditCommand}" Margin="0,0,8,0" />
+                    <Button Content="CONFIRMAR SAÍDA" Command="{Binding ConfirmCommand}" />
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <Setter Property="Margin" Value="0,0,0,12" />
+                            </Style>
+                            <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+                                <Setter Property="Margin" Value="0,0,0,12" />
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Tipo de saída *"
+                                      ItemsSource="{Binding ExitTypes}" SelectedItem="{Binding ExitType}" />
+                            <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Almoxarifado *"
+                                      ItemsSource="{Binding Warehouses}" DisplayMemberPath="Name"
+                                      SelectedItem="{Binding SelectedWarehouse}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Centro de custo"
+                                      ItemsSource="{Binding CostCenters}" DisplayMemberPath="Name"
+                                      SelectedItem="{Binding SelectedCostCenter}" />
+                            <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Funcionário"
+                                      ItemsSource="{Binding Employees}" DisplayMemberPath="Name"
+                                      SelectedItem="{Binding SelectedEmployee}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Setor"
+                                      ItemsSource="{Binding Sectors}" DisplayMemberPath="Name"
+                                      SelectedItem="{Binding SelectedSector}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Ordem de serviço"
+                                     Text="{Binding WorkOrder}" />
+                        </Grid>
+                        <TextBox materialDesign:HintAssist.Hint="Motivo" Text="{Binding Reason}" />
+                        <TextBox materialDesign:HintAssist.Hint="Responsável pela retirada" Text="{Binding ResponsibleName}" />
+                        <TextBox materialDesign:HintAssist.Hint="Observações" Text="{Binding Notes}" />
+
+                        <Separator Margin="0,4,0,12" />
+                        <TextBlock Text="Itens" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     materialDesign:HintAssist.Hint="Código interno ou código de barras"
+                                     Text="{Binding ItemCode, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding FindProductCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <Button Grid.Column="2" Command="{Binding FindProductCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                    Margin="0,0,0,12" ToolTip="Localizar produto">
+                                <materialDesign:PackIcon Kind="BarcodeScan" />
+                            </Button>
+                        </Grid>
+                        <TextBlock Text="{Binding FoundProduct.Name}" FontWeight="SemiBold" Margin="0,0,0,8"
+                                   Foreground="{DynamicResource PrimaryHueMidBrush}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Quantidade"
+                                     Text="{Binding ItemQuantity}" />
+                            <Button Grid.Column="2" Command="{Binding AddItemCommand}" VerticalAlignment="Center"
+                                    Margin="0,0,0,12">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                    <TextBlock Text="ADICIONAR" Margin="6,0,0,0" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <DataGrid ItemsSource="{Binding EditorItems}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" MaxHeight="240" Margin="0,0,0,8">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Produto" Binding="{Binding ProductName}" Width="*" IsReadOnly="True" />
+                                <DataGridTextColumn Header="Qtde" Binding="{Binding Quantity, StringFormat=N2}" Width="80" IsReadOnly="True" />
+                                <DataGridTextColumn Header="Disponível" Binding="{Binding Available, StringFormat=N2}" Width="100" IsReadOnly="True" />
+                                <DataGridTemplateColumn Width="50">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource MaterialDesignFlatButton}" Padding="4"
+                                                    Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="Delete" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>
