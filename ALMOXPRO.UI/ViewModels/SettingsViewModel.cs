@@ -118,6 +118,19 @@ public partial class SettingsViewModel : ViewModelBase
     });
 
     [RelayCommand]
+    private void ChangeDatabaseConnection()
+    {
+        var viewModel = new DatabaseConfigViewModel(App.ReadConnectionString());
+        var window = new Views.DatabaseConfigWindow
+        {
+            DataContext = viewModel,
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+        if (window.ShowDialog() == true)
+            Dialog.ShowInfo("Conexão salva. Feche e abra o ALMOX PRO para aplicar a nova configuração.");
+    }
+
+    [RelayCommand]
     private void SelectWarehouse(WarehouseDto warehouse)
     {
         SelectedWarehouse = warehouse;
