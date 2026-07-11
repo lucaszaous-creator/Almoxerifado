@@ -69,6 +69,9 @@ public class FiscalService : IFiscalService
 
     public async Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default)
     {
+        if (await IsDemoModeAsync(ct))
+            return await SyncDemoAsync(ct);
+
         var configResult = await LoadConfigAsync(ct);
         if (configResult.IsFailure)
             return Result.Failure<FiscalSyncSummary>(configResult.Errors);
@@ -164,14 +167,18 @@ public class FiscalService : IFiscalService
         if (document is null)
             return Result.Failure("Nota fiscal não encontrada.");
 
-        var configResult = await LoadConfigAsync(ct);
-        if (configResult.IsFailure)
-            return Result.Failure(configResult.Errors);
+        // Modo demonstração: registra a manifestação localmente, sem a SEFAZ.
+        if (!await IsDemoModeAsync(ct))
+        {
+            var configResult = await LoadConfigAsync(ct);
+            if (configResult.IsFailure)
+                return Result.Failure(configResult.Errors);
 
-        var result = await _gateway.SendManifestationAsync(configResult.Value,
-            document.AccessKey, type, justification, ct);
-        if (!result.Success)
-            return Result.Failure($"SEFAZ recusou o evento ({result.StatusCode}): {result.Message}");
+            var result = await _gateway.SendManifestationAsync(configResult.Value,
+                document.AccessKey, type, justification, ct);
+            if (!result.Success)
+                return Result.Failure($"SEFAZ recusou o evento ({result.StatusCode}): {result.Message}");
+        }
 
         var newStatus = type switch
         {
@@ -252,6 +259,56 @@ public class FiscalService : IFiscalService
         {
             return null;
         }
+    }
+
+    private async Task<bool> IsDemoModeAsync(CancellationToken ct) =>
+        (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalDemoMode, ct))?.Value == "true";
+
+    /// <summary>
+    /// Simula a Distribuição DF-e com notas fictícias: cria os documentos de
+    /// exemplo e, para os que já tiveram a Ciência registrada, "libera" o XML
+    /// completo — reproduzindo o ciclo real resumo → ciência → nota completa.
+    /// </summary>
+    private async Task<Result<FiscalSyncSummary>> SyncDemoAsync(CancellationToken ct)
+    {
+        var newCount = 0;
+        var updatedCount = 0;
+
+        foreach (var demo in FiscalDemoData.Documents)
+        {
+            var existing = await _uow.FiscalDocuments.GetByAccessKeyAsync(demo.AccessKey, ct);
+            if (existing is null)
+            {
+                var xml = demo.StartsWithFullXml ? demo.FullXml : demo.SummaryXml;
+                var parsed = demo.StartsWithFullXml
+                    ? FiscalXmlParser.ParseProcNFe(xml)
+                    : FiscalXmlParser.ParseResNFe(xml);
+
+                await _uow.FiscalDocuments.AddAsync(new FiscalDocument
+                {
+                    AccessKey = parsed.AccessKey,
+                    Nsu = demo.Nsu,
+                    EmitterCnpj = parsed.EmitterCnpj,
+                    EmitterName = parsed.EmitterName,
+                    IssuedAt = parsed.IssuedAt,
+                    TotalValue = parsed.TotalValue,
+                    HasFullXml = demo.StartsWithFullXml,
+                    Xml = xml
+                }, ct);
+                newCount++;
+            }
+            else if (!existing.HasFullXml && existing.Status != FiscalDocumentStatus.Recebida)
+            {
+                // Após a Ciência, a SEFAZ libera o XML completo.
+                existing.HasFullXml = true;
+                existing.Xml = demo.FullXml;
+                updatedCount++;
+            }
+        }
+
+        await _uow.SaveChangesAsync(ct);
+        _logger.LogInformation("Sincronização DEMO: {New} novas, {Updated} atualizadas", newCount, updatedCount);
+        return Result.Success(new FiscalSyncSummary(newCount, updatedCount, "demo"));
     }
 
     private async Task<Result<FiscalConfig>> LoadConfigAsync(CancellationToken ct)

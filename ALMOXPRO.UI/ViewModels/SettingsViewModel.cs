@@ -65,6 +65,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _fiscalCertStatus = string.Empty;
 
+    /// <summary>Modo demonstração: simula a SEFAZ com notas de exemplo, sem certificado.</summary>
+    [ObservableProperty]
+    private bool _fiscalDemoMode;
+
     private byte[]? _fiscalCertBytes;
 
     public string[] Ufs { get; } =
@@ -115,6 +119,7 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalCnpj = all.GetValueOrDefault(SettingKeys.FiscalCnpj) ?? string.Empty;
         FiscalUf = all.GetValueOrDefault(SettingKeys.FiscalUf) ?? string.Empty;
         FiscalProduction = all.GetValueOrDefault(SettingKeys.FiscalProduction) != "false";
+        FiscalDemoMode = all.GetValueOrDefault(SettingKeys.FiscalDemoMode) == "true";
 
         var fiscal = services.GetRequiredService<IFiscalService>();
         var certificate = await fiscal.GetCertificateInfoAsync();
@@ -138,6 +143,16 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private Task SaveFiscalConfigAsync() => RunAsync(async services =>
     {
+        var settings = services.GetRequiredService<ISettingsService>();
+        await settings.SetAsync(SettingKeys.FiscalDemoMode, FiscalDemoMode ? "true" : "false");
+
+        // No modo demonstração não é preciso certificado nem CNPJ/UF válidos.
+        if (FiscalDemoMode)
+        {
+            Dialog.Notify("Modo demonstração ativado. Em Notas Fiscais, clique em SINCRONIZAR SEFAZ para carregar notas de exemplo.");
+            return;
+        }
+
         var fiscal = services.GetRequiredService<IFiscalService>();
         var result = await fiscal.SaveConfigurationAsync(
             _fiscalCertBytes, FiscalCertPassword, FiscalCnpj, FiscalUf, FiscalProduction);
