@@ -65,9 +65,18 @@ configurado no cliente.
 
 ### Configuração do banco de dados
 
-A connection string fica em **`appsettings.json`**, na pasta de instalação
-(ex.: `C:\Program Files\ALMOX PRO\appsettings.json`; no código-fonte,
-`ALMOXPRO.UI/appsettings.json`):
+**Pela interface (recomendado):** se o banco não estiver acessível ao abrir
+o ALMOX PRO, uma tela de **"Conexão com o banco"** é exibida
+automaticamente com os campos servidor, porta, banco, usuário e senha,
+botão **Testar conexão** e **Salvar e continuar**. A configuração é
+gravada em `C:\ProgramData\ALMOXPRO\appsettings.json` (não requer
+administrador e **sobrevive a atualizações** do aplicativo).
+
+**Pelos arquivos:** a connection string padrão fica em
+**`appsettings.json`** na pasta de instalação (ex.:
+`C:\Program Files\ALMOX PRO\appsettings.json`; no código-fonte,
+`ALMOXPRO.UI/appsettings.json`), e o arquivo de override em
+`C:\ProgramData\ALMOXPRO\appsettings.json` tem precedência:
 
 ```json
 {
@@ -77,11 +86,8 @@ A connection string fica em **`appsettings.json`**, na pasta de instalação
 }
 ```
 
-Ajuste `Host`, `Port`, `Database`, `Username` e `Password` para o seu
-ambiente. O instalador cria o atalho **"Configurar banco de dados"** no
-Menu Iniciar, que abre esse arquivo no Bloco de Notas. Se a conexão
-falhar, o aplicativo exibe uma mensagem orientando a revisar essa
-configuração.
+O instalador também cria o atalho **"Configurar banco de dados"** no Menu
+Iniciar, que abre o arquivo no Bloco de Notas.
 
 ### Como rodar em desenvolvimento
 

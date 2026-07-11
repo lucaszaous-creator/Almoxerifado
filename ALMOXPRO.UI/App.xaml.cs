@@ -43,12 +43,45 @@ public partial class App : System.Windows.Application
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             Log.Fatal(args.ExceptionObject as Exception, "Erro não tratado no domínio da aplicação");
 
-        _host = Host.CreateDefaultBuilder()
+        // Se o banco não estiver acessível, abre a tela de configuração de
+        // conexão e tenta novamente até conectar ou o usuário desistir.
+        while (true)
+        {
+            _host = BuildHost();
+            Services = _host.Services;
+            await _host.StartAsync();
+
+            var error = await InitializeDatabaseAsync();
+            if (error is null)
+                break;
+
+            await _host.StopAsync();
+            _host.Dispose();
+
+            var viewModel = new DatabaseConfigViewModel(ReadConnectionString(),
+                $"Não foi possível conectar ao banco de dados.\n{error}");
+            var configWindow = new DatabaseConfigWindow { DataContext = viewModel };
+            if (configWindow.ShowDialog() != true)
+            {
+                Shutdown();
+                return;
+            }
+        }
+
+        await ApplySavedThemeAsync();
+        ShowLogin();
+    }
+
+    private static IHost BuildHost() =>
+        Host.CreateDefaultBuilder()
             .UseSerilog()
             .ConfigureAppConfiguration(config =>
             {
                 config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false);
+                // Configuração salva pela tela de conexão (ProgramData);
+                // tem precedência e sobrevive a atualizações do aplicativo.
+                config.AddJsonFile(DatabaseConfigViewModel.OverridePath, optional: true);
             })
             .ConfigureServices((context, services) =>
             {
@@ -84,20 +117,8 @@ public partial class App : System.Windows.Application
             })
             .Build();
 
-        Services = _host.Services;
-        await _host.StartAsync();
-
-        if (!await InitializeDatabaseAsync())
-        {
-            Shutdown();
-            return;
-        }
-
-        await ApplySavedThemeAsync();
-        ShowLogin();
-    }
-
-    private async Task<bool> InitializeDatabaseAsync()
+    /// <summary>Aplica migrations e seed. Retorna null em sucesso ou a mensagem de erro.</summary>
+    private static async Task<string?> InitializeDatabaseAsync()
     {
         try
         {
@@ -105,18 +126,23 @@ public partial class App : System.Windows.Application
             var context = scope.ServiceProvider.GetRequiredService<AlmoxProDbContext>();
             await context.Database.MigrateAsync();
             await DbSeeder.SeedAsync(context, scope.ServiceProvider.GetRequiredService<IPasswordHasher>());
-            return true;
+            return null;
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, "Falha ao inicializar o banco de dados");
-            MessageBox.Show(
-                "Não foi possível conectar ao banco de dados PostgreSQL.\n\n" +
-                "Verifique a connection string em appsettings.json e se o serviço está em execução.\n\n" +
-                $"Detalhes: {ex.Message}",
-                "ALMOX PRO", MessageBoxButton.OK, MessageBoxImage.Error);
-            return false;
+            Log.Error(ex, "Falha ao inicializar o banco de dados");
+            return ex.Message;
         }
+    }
+
+    private static string? ReadConnectionString()
+    {
+        var config = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile(DatabaseConfigViewModel.OverridePath, optional: true)
+            .Build();
+        return config.GetConnectionString("Default");
     }
 
     private async Task ApplySavedThemeAsync()
