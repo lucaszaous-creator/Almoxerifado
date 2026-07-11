@@ -40,6 +40,16 @@ public class NotNullToVisibilityConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Visível quando a contagem é zero (estados vazios de listas).</summary>
+public class ZeroToVisibleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is int count && count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Converte decimal para exibição, ocultando quando o usuário não pode ver custos.</summary>
 public class BoolToWidthConverter : IValueConverter
 {

@@ -15,8 +15,10 @@ public class ReportExporter : IReportExporter
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public byte[] ToPdf(ReportTable table)
+    public byte[] ToPdf(ReportTable table, string? logoPath = null)
     {
+        var logo = LoadLogo(logoPath);
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -25,15 +27,20 @@ public class ReportExporter : IReportExporter
                 page.Margin(30);
                 page.DefaultTextStyle(x => x.FontSize(9));
 
-                page.Header().Column(header =>
+                page.Header().Row(headerRow =>
                 {
-                    header.Item().Text("ALMOX PRO").FontSize(8).FontColor(Colors.Grey.Medium);
-                    header.Item().Text(table.Title).FontSize(16).SemiBold();
-                    if (!string.IsNullOrWhiteSpace(table.Subtitle))
-                        header.Item().Text(table.Subtitle).FontSize(10).FontColor(Colors.Grey.Darken1);
-                    header.Item().PaddingBottom(8)
-                        .Text($"Emitido em {DateTime.Now:dd/MM/yyyy HH:mm}")
-                        .FontSize(8).FontColor(Colors.Grey.Medium);
+                    headerRow.RelativeItem().Column(header =>
+                    {
+                        header.Item().Text("ALMOX PRO").FontSize(8).FontColor(Colors.Grey.Medium);
+                        header.Item().Text(table.Title).FontSize(16).SemiBold();
+                        if (!string.IsNullOrWhiteSpace(table.Subtitle))
+                            header.Item().Text(table.Subtitle).FontSize(10).FontColor(Colors.Grey.Darken1);
+                        header.Item().PaddingBottom(8)
+                            .Text($"Emitido em {DateTime.Now:dd/MM/yyyy HH:mm}")
+                            .FontSize(8).FontColor(Colors.Grey.Medium);
+                    });
+                    if (logo is not null)
+                        headerRow.ConstantItem(90).AlignRight().MaxHeight(50).Image(logo).FitArea();
                 });
 
                 page.Content().Table(pdfTable =>
@@ -112,6 +119,21 @@ public class ReportExporter : IReportExporter
         foreach (var row in table.Rows)
             sb.AppendLine(string.Join(";", row.Select(Escape)));
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+    }
+
+    /// <summary>Carrega a logo configurada; caminho inválido é ignorado silenciosamente.</summary>
+    internal static byte[]? LoadLogo(string? logoPath)
+    {
+        try
+        {
+            return !string.IsNullOrWhiteSpace(logoPath) && File.Exists(logoPath)
+                ? File.ReadAllBytes(logoPath)
+                : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
     }
 
     private static string Escape(string value) =>

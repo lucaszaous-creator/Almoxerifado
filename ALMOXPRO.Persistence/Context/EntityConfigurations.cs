@@ -284,6 +284,7 @@ public class MaterialExitConfiguration : IEntityTypeConfiguration<MaterialExit>
         builder.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(e => e.Sector).WithMany().HasForeignKey(e => e.SectorId).OnDelete(DeleteBehavior.Restrict);
         builder.Ignore(e => e.TotalValue);
+        builder.Ignore(e => e.IsReversed);
     }
 }
 
@@ -423,6 +424,7 @@ public class RequisitionConfiguration : IEntityTypeConfiguration<Requisition>
         builder.HasOne(r => r.Sector).WithMany().HasForeignKey(r => r.SectorId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.Employee).WithMany().HasForeignKey(r => r.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.MaterialExit).WithMany().HasForeignKey(r => r.MaterialExitId).OnDelete(DeleteBehavior.Restrict);
+        builder.Ignore(r => r.IsOpen);
     }
 }
 

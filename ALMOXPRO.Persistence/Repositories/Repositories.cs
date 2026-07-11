@@ -172,6 +172,11 @@ public class StockRepository : IStockRepository
         _context.StockItems.Include(s => s.Product)
             .FirstOrDefaultAsync(s => s.ProductId == productId && s.WarehouseId == warehouseId && s.LotId == lotId, ct);
 
+    public Task<List<StockItem>> GetItemsWithLotsAsync(int productId, int warehouseId, CancellationToken ct = default) =>
+        _context.StockItems.Include(s => s.Product).Include(s => s.Lot)
+            .Where(s => s.ProductId == productId && s.WarehouseId == warehouseId && s.Quantity > 0)
+            .ToListAsync(ct);
+
     public Task<List<StockItem>> GetByWarehouseAsync(int warehouseId, CancellationToken ct = default) =>
         _context.StockItems.Include(s => s.Product).Include(s => s.Lot)
             .Where(s => s.WarehouseId == warehouseId && s.Quantity != 0).ToListAsync(ct);
@@ -185,7 +190,9 @@ public class StockRepository : IStockRepository
         var query = _context.StockItems.Where(s => s.ProductId == productId);
         if (warehouseId.HasValue)
             query = query.Where(s => s.WarehouseId == warehouseId);
-        return await query.SumAsync(s => (decimal?)s.Quantity, ct) ?? 0;
+        // Soma no cliente: poucos registros por produto e o SQLite (testes)
+        // não agrega decimal no servidor.
+        return (await query.Select(s => s.Quantity).ToListAsync(ct)).Sum();
     }
 
     public Task<List<StockItem>> GetAllWithDetailsAsync(CancellationToken ct = default) =>
@@ -413,5 +420,18 @@ public class RequisitionRepository : Repository<Requisition>, IRequisitionReposi
                           || (r.RequesterName != null && EF.Functions.ILike(r.RequesterName, s)));
         }
         return q.OrderByDescending(r => r.RequestDate).ToPagedResultAsync(query, ct);
+    }
+
+    public async Task<decimal> GetReservedQuantityAsync(int productId, int warehouseId,
+        int? excludeRequisitionId = null, CancellationToken ct = default)
+    {
+        var open = new[] { Domain.Common.RequisitionStatus.Pendente, Domain.Common.RequisitionStatus.AtendidaParcial };
+        var query = Context.Set<RequisitionItem>()
+            .Where(i => i.ProductId == productId
+                     && i.Requisition.WarehouseId == warehouseId
+                     && open.Contains(i.Requisition.Status));
+        if (excludeRequisitionId.HasValue)
+            query = query.Where(i => i.RequisitionId != excludeRequisitionId.Value);
+        return await query.SumAsync(i => (decimal?)(i.QuantityRequested - i.QuantityFulfilled), ct) ?? 0;
     }
 }

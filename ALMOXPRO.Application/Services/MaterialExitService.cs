@@ -12,6 +12,9 @@ public interface IMaterialExitService
 {
     Task<PagedResult<ExitListDto>> SearchAsync(PagedQuery query, DateTime? from = null, DateTime? to = null, CancellationToken ct = default);
     Task<Result<int>> CreateAsync(ExitCreateDto dto, CancellationToken ct = default);
+
+    /// <summary>Estorna a saída criando uma entrada de devolução vinculada, devolvendo os itens ao estoque.</summary>
+    Task<Result<int>> ReverseAsync(int exitId, CancellationToken ct = default);
 }
 
 public class MaterialExitService : IMaterialExitService
@@ -20,14 +23,16 @@ public class MaterialExitService : IMaterialExitService
     private readonly IStockOperationService _stock;
     private readonly ICurrentSession _session;
     private readonly IValidator<ExitCreateDto> _validator;
+    private readonly IMaterialEntryService _entries;
 
     public MaterialExitService(IUnitOfWork uow, IStockOperationService stock,
-        ICurrentSession session, IValidator<ExitCreateDto> validator)
+        ICurrentSession session, IValidator<ExitCreateDto> validator, IMaterialEntryService entries)
     {
         _uow = uow;
         _stock = stock;
         _session = session;
         _validator = validator;
+        _entries = entries;
     }
 
     public async Task<PagedResult<ExitListDto>> SearchAsync(PagedQuery query, DateTime? from = null,
@@ -38,7 +43,8 @@ public class MaterialExitService : IMaterialExitService
         {
             Items = page.Items.Select(e => new ExitListDto(
                 e.Id, e.Number, e.Type, e.Warehouse.Name, e.CostCenter?.Name,
-                e.Employee?.Name, e.Sector?.Name, e.ExitDate, e.TotalValue, e.Items.Count)).ToList(),
+                e.Employee?.Name, e.Sector?.Name, e.ExitDate, e.TotalValue, e.Items.Count,
+                e.IsReversed)).ToList(),
             TotalCount = page.TotalCount,
             Page = page.Page,
             PageSize = page.PageSize
@@ -115,5 +121,63 @@ public class MaterialExitService : IMaterialExitService
         }, ct);
 
         return Result.Success(exitId);
+    }
+
+    public async Task<Result<int>> ReverseAsync(int exitId, CancellationToken ct = default)
+    {
+        var exit = await _uow.Exits.GetWithItemsAsync(exitId, ct);
+        if (exit is null)
+            return Result.Failure<int>("Saída não encontrada.");
+        if (exit.IsReversed)
+            return Result.Failure<int>($"A saída {exit.Number} já foi estornada.");
+
+        var entryDto = new EntryCreateDto
+        {
+            Type = EntryType.Devolucao,
+            WarehouseId = exit.WarehouseId,
+            DocumentNumber = exit.Number,
+            Notes = $"Estorno da saída {exit.Number}",
+            Items = new List<EntryItemDto>()
+        };
+
+        foreach (var item in exit.Items)
+        {
+            string? lotNumber = null;
+            DateOnly? expiration = null;
+            if (item.LotId.HasValue)
+            {
+                var lot = await _uow.Lots.GetByIdAsync(item.LotId.Value, ct);
+                lotNumber = lot?.LotNumber;
+                expiration = lot?.ExpirationDate;
+            }
+
+            entryDto.Items.Add(new EntryItemDto
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitCost = item.UnitCost,
+                LotNumber = lotNumber,
+                ExpirationDate = expiration,
+                Notes = $"Estorno {exit.Number}"
+            });
+        }
+
+        var entryId = 0;
+        Result<int>? entryResult = null;
+        await _uow.ExecuteInTransactionAsync(async () =>
+        {
+            entryResult = await _entries.CreateAsync(entryDto, ct);
+            if (entryResult.IsFailure)
+                return;
+
+            entryId = entryResult.Value;
+            exit.ReversedByEntryId = entryId;
+            await _uow.SaveChangesAsync(ct);
+        }, ct);
+
+        if (entryResult is { IsFailure: true })
+            return Result.Failure<int>(entryResult.Errors);
+
+        return Result.Success(entryId);
     }
 }

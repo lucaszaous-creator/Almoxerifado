@@ -69,7 +69,8 @@ public record ExitListDto(
     string? SectorName,
     DateTime ExitDate,
     decimal TotalValue,
-    int ItemCount);
+    int ItemCount,
+    bool Reversed);
 
 public class TransferCreateDto
 {

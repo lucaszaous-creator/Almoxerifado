@@ -100,7 +100,7 @@ public partial class InventoryViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Inventário aberto. Os saldos do sistema foram congelados para contagem.");
+        Dialog.Notify("Inventário aberto. Saldos congelados para contagem.");
         await LoadIntoAsync(services);
     });
 
@@ -168,7 +168,7 @@ public partial class InventoryViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Ajustes aplicados ao estoque.");
+        Dialog.Notify("Ajustes aplicados ao estoque.");
         await ReloadCountItemsAsync(services);
     });
 

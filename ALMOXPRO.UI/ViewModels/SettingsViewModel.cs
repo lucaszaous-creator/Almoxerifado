@@ -34,6 +34,13 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _backupCompress = true;
 
     [ObservableProperty]
+    private bool _backupAutoEnabled;
+
+    // Sessão
+    [ObservableProperty]
+    private string _sessionTimeoutMinutes = "15";
+
+    [ObservableProperty]
     private string _pgDumpPath = string.Empty;
 
     [ObservableProperty]
@@ -73,6 +80,8 @@ public partial class SettingsViewModel : ViewModelBase
         LogoPath = all.GetValueOrDefault(SettingKeys.CompanyLogoPath) ?? string.Empty;
         BackupDirectory = all.GetValueOrDefault(SettingKeys.BackupDirectory) ?? string.Empty;
         BackupCompress = all.GetValueOrDefault(SettingKeys.BackupCompress) != "false";
+        BackupAutoEnabled = all.GetValueOrDefault(SettingKeys.BackupAutoEnabled) == "true";
+        SessionTimeoutMinutes = all.GetValueOrDefault(SettingKeys.SessionTimeoutMinutes) ?? "15";
         PgDumpPath = all.GetValueOrDefault(SettingKeys.PgDumpPath) ?? string.Empty;
         PgRestorePath = all.GetValueOrDefault(SettingKeys.PgRestorePath) ?? string.Empty;
 
@@ -88,9 +97,12 @@ public partial class SettingsViewModel : ViewModelBase
         await settings.SetAsync(SettingKeys.CompanyLogoPath, LogoPath);
         await settings.SetAsync(SettingKeys.BackupDirectory, BackupDirectory);
         await settings.SetAsync(SettingKeys.BackupCompress, BackupCompress ? "true" : "false");
+        await settings.SetAsync(SettingKeys.BackupAutoEnabled, BackupAutoEnabled ? "true" : "false");
+        await settings.SetAsync(SettingKeys.SessionTimeoutMinutes,
+            int.TryParse(SessionTimeoutMinutes, out var minutes) && minutes >= 0 ? minutes.ToString() : "15");
         await settings.SetAsync(SettingKeys.PgDumpPath, PgDumpPath);
         await settings.SetAsync(SettingKeys.PgRestorePath, PgRestorePath);
-        Dialog.ShowInfo("Configurações salvas.");
+        Dialog.Notify("Configurações salvas.");
     });
 
     [RelayCommand]

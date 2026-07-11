@@ -148,6 +148,39 @@ public partial class ProductsViewModel : ViewModelBase
     private void CancelEdit() => IsEditorOpen = false;
 
     [RelayCommand]
+    private void SelectPhoto()
+    {
+        var path = Dialog.OpenFile("Imagens (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp");
+        if (path is null)
+            return;
+
+        var info = new FileInfo(path);
+        if (info.Length > 2 * 1024 * 1024)
+        {
+            Dialog.ShowError("A foto deve ter no máximo 2 MB.");
+            return;
+        }
+
+        Editor.Photo = File.ReadAllBytes(path);
+        OnPropertyChanged(nameof(Editor));
+    }
+
+    [RelayCommand]
+    private void RemovePhoto()
+    {
+        Editor.Photo = null;
+        OnPropertyChanged(nameof(Editor));
+    }
+
+    /// <summary>Usado pela busca global da barra superior.</summary>
+    public async Task SearchForAsync(string term)
+    {
+        Search = term;
+        Page = 1;
+        await SearchProductsAsync();
+    }
+
+    [RelayCommand]
     private Task DeleteAsync() => RunAsync(async services =>
     {
         if (Selected is null)

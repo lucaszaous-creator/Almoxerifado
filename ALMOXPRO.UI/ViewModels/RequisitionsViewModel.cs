@@ -28,6 +28,19 @@ public partial class RequisitionItemRow : ObservableObject
     private decimal _available;
 }
 
+/// <summary>Linha do painel de atendimento: quanto entregar agora de cada item.</summary>
+public partial class FulfillItemRow : ObservableObject
+{
+    public int ItemId { get; init; }
+    public string ProductName { get; init; } = string.Empty;
+    public decimal Requested { get; init; }
+    public decimal AlreadyFulfilled { get; init; }
+    public decimal Remaining => Requested - AlreadyFulfilled;
+
+    [ObservableProperty]
+    private decimal _deliverNow;
+}
+
 public partial class RequisitionsViewModel : ViewModelBase
 {
     private readonly ISessionService _session;
@@ -49,6 +62,9 @@ public partial class RequisitionsViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isEditorOpen;
+
+    [ObservableProperty]
+    private bool _isFulfillOpen;
 
     // Nova requisição
     [ObservableProperty]
@@ -78,10 +94,11 @@ public partial class RequisitionsViewModel : ViewModelBase
     public ObservableCollection<RequisitionListDto> Items { get; } = [];
     public ObservableCollection<RequisitionItemViewDto> SelectedItems { get; } = [];
     public ObservableCollection<RequisitionItemRow> EditorItems { get; } = [];
+    public ObservableCollection<FulfillItemRow> FulfillItems { get; } = [];
     public ObservableCollection<LookupDto> Warehouses { get; } = [];
     public ObservableCollection<LookupDto> Sectors { get; } = [];
     public ObservableCollection<LookupDto> Employees { get; } = [];
-    public string[] StatusFilters { get; } = ["Todas", "Pendente", "Atendida", "Cancelada"];
+    public string[] StatusFilters { get; } = ["Todas", "Pendente", "Parcial", "Atendida", "Cancelada"];
 
     public bool CanCreate => _session.HasPermission(PermissionCodes.RequisitionsCreate);
     public bool CanFulfill => _session.HasPermission(PermissionCodes.RequisitionsFulfill);
@@ -221,7 +238,7 @@ public partial class RequisitionsViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Requisição registrada. Imprima o documento para colher a assinatura na retirada.");
+        Dialog.Notify("Requisição registrada. Imprima o documento para colher a assinatura.");
         IsEditorOpen = false;
         await LoadIntoAsync(services);
     });
@@ -234,18 +251,60 @@ public partial class RequisitionsViewModel : ViewModelBase
     {
         if (Selected is null)
             return;
-        if (!Dialog.Confirm($"Atender a requisição {Selected.Number}?\nA saída de estoque será gerada automaticamente."))
+        if (Selected.Status is not (RequisitionStatus.Pendente or RequisitionStatus.AtendidaParcial))
+        {
+            Dialog.ShowError("Apenas requisições pendentes ou parciais podem ser atendidas.");
+            return;
+        }
+
+        // Abre o painel de atendimento com o saldo pendente de cada item,
+        // permitindo ajustar as quantidades para entrega parcial.
+        var requisitions = services.GetRequiredService<IRequisitionService>();
+        FulfillItems.Clear();
+        foreach (var item in await requisitions.GetItemsAsync(Selected.Id))
+        {
+            var row = new FulfillItemRow
+            {
+                ItemId = item.Id,
+                ProductName = item.ProductName,
+                Requested = item.QuantityRequested,
+                AlreadyFulfilled = item.QuantityFulfilled
+            };
+            row.DeliverNow = row.Remaining;
+            FulfillItems.Add(row);
+        }
+        IsFulfillOpen = true;
+    });
+
+    [RelayCommand]
+    private void CloseFulfill() => IsFulfillOpen = false;
+
+    [RelayCommand]
+    private Task ConfirmFulfillAsync() => RunAsync(async services =>
+    {
+        if (Selected is null)
+            return;
+
+        var quantities = FulfillItems.ToDictionary(i => i.ItemId, i => i.DeliverNow);
+        var partial = FulfillItems.Any(i => i.DeliverNow < i.Remaining);
+
+        if (!Dialog.Confirm(partial
+                ? $"Registrar entrega PARCIAL da requisição {Selected.Number}?\nO saldo não entregue continua pendente."
+                : $"Atender a requisição {Selected.Number}?\nA saída de estoque será gerada automaticamente."))
             return;
 
         var requisitions = services.GetRequiredService<IRequisitionService>();
-        var result = await requisitions.FulfillAsync(Selected.Id);
+        var result = await requisitions.FulfillAsync(Selected.Id, quantities);
         if (result.IsFailure)
         {
             Dialog.ShowError(string.Join("\n", result.Errors));
             return;
         }
 
-        Dialog.ShowInfo("Requisição atendida. Saída de estoque gerada e vinculada.");
+        Dialog.Notify(partial
+            ? "Entrega parcial registrada. O restante segue pendente."
+            : "Requisição atendida. Saída de estoque gerada e vinculada.");
+        IsFulfillOpen = false;
         await LoadIntoAsync(services);
     });
 
@@ -306,6 +365,7 @@ public partial class RequisitionsViewModel : ViewModelBase
         RequisitionStatus? status = StatusFilter switch
         {
             "Pendente" => RequisitionStatus.Pendente,
+            "Parcial" => RequisitionStatus.AtendidaParcial,
             "Atendida" => RequisitionStatus.Atendida,
             "Cancelada" => RequisitionStatus.Cancelada,
             _ => null

@@ -23,6 +23,8 @@ public static class SettingKeys
     public const string BackupCompress = "backup.compress";
     public const string PgDumpPath = "backup.pg_dump_path";
     public const string PgRestorePath = "backup.pg_restore_path";
+    public const string BackupLastAutoAt = "backup.last_auto_at";
+    public const string SessionTimeoutMinutes = "security.session_timeout_minutes";
     public const string LabelPrinter = "printers.label";
     public const string ReportPrinter = "printers.report";
     public const string ReportsDirectory = "directories.reports";

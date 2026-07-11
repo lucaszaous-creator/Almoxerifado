@@ -1,7 +1,8 @@
 <UserControl x:Class="ALMOXPRO.UI.Views.UsersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:validation="clr-namespace:ALMOXPRO.UI.Validation">
     <Grid>
         <DockPanel>
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
@@ -84,8 +85,24 @@
                                 <Setter Property="Margin" Value="0,0,0,12" />
                             </Style>
                         </StackPanel.Resources>
-                        <TextBox materialDesign:HintAssist.Hint="Nome *" Text="{Binding Editor.Name}" />
-                        <TextBox materialDesign:HintAssist.Hint="E-mail *" Text="{Binding Editor.Email}" />
+                        <TextBox materialDesign:HintAssist.Hint="Nome *">
+                            <TextBox.Text>
+                                <Binding Path="Editor.Name" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding.ValidationRules>
+                                        <validation:RequiredRule FieldName="O nome" />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
+                        <TextBox materialDesign:HintAssist.Hint="E-mail *">
+                            <TextBox.Text>
+                                <Binding Path="Editor.Email" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding.ValidationRules>
+                                        <validation:RequiredRule FieldName="O e-mail" />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -118,6 +135,21 @@
                                      Text="{Binding Editor.Department}" />
                             <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Cargo"
                                      Text="{Binding Editor.JobTitle}" />
+                        </Grid>
+
+                        <TextBlock Text="Horário de acesso" FontWeight="SemiBold" Margin="0,4,0,8" />
+                        <CheckBox Content="Somente dias úteis (segunda a sexta)" IsChecked="{Binding WeekdaysOnly}"
+                                  Margin="0,0,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Das (ex.: 07:00)"
+                                     Text="{Binding AccessStart, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Até (ex.: 18:00)"
+                                     Text="{Binding AccessEnd, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
                         <TextBlock Text="Perfis de acesso" FontWeight="SemiBold" Margin="0,4,0,8" />

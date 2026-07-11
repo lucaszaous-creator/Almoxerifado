@@ -3,6 +3,7 @@ using ALMOXPRO.Application.Services;
 using ALMOXPRO.UI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 
@@ -25,6 +26,15 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     public override Task LoadAsync() => RefreshAsync();
+
+    // Cartões clicáveis: navegam para a tela/relatório correspondente.
+    [RelayCommand]
+    private void OpenProducts() =>
+        WeakReferenceMessenger.Default.Send(new OpenScreenMessage(typeof(ProductsViewModel)));
+
+    [RelayCommand]
+    private void OpenReport(string kind) =>
+        WeakReferenceMessenger.Default.Send(new OpenReportMessage(Enum.Parse<ReportKind>(kind)));
 
     [RelayCommand]
     private Task RefreshAsync() => RunAsync(async services =>

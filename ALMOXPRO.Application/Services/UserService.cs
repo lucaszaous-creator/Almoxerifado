@@ -59,6 +59,9 @@ public class UserService : IUserService
             JobTitle = user.JobTitle,
             Status = user.Status,
             Photo = user.Photo,
+            WeekdaysOnly = user.WeekdaysOnly,
+            AccessStartTime = user.AccessStartTime,
+            AccessEndTime = user.AccessEndTime,
             RoleIds = user.Roles.Select(r => r.RoleId).ToList(),
             PermissionOverrides = user.Permissions.ToDictionary(p => p.Permission.Code, p => p.IsGranted)
         };
@@ -100,6 +103,9 @@ public class UserService : IUserService
         user.Phone = dto.Phone;
         user.Department = dto.Department;
         user.JobTitle = dto.JobTitle;
+        user.WeekdaysOnly = dto.WeekdaysOnly;
+        user.AccessStartTime = dto.AccessStartTime;
+        user.AccessEndTime = dto.AccessEndTime;
         user.Status = dto.Status;
         if (dto.Photo is not null)
             user.Photo = dto.Photo;

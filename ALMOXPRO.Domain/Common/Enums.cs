@@ -50,7 +50,8 @@ public enum RequisitionStatus
 {
     Pendente = 1,
     Atendida = 2,
-    Cancelada = 3
+    Cancelada = 3,
+    AtendidaParcial = 4
 }
 
 public enum InventoryType

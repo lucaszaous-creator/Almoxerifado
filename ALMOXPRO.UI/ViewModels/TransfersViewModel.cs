@@ -159,7 +159,7 @@ public partial class TransfersViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Transferência registrada com sucesso.");
+        Dialog.Notify("Transferência registrada.");
         IsEditorOpen = false;
         await LoadIntoAsync(services);
     });

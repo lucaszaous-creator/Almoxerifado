@@ -43,6 +43,12 @@ public abstract partial class ViewModelBase : ObservableObject
         {
             Dialog.ShowError(ex.Message);
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            Dialog.ShowError(
+                "O estoque foi alterado por outro usuário neste instante.\n" +
+                "Atualize a tela e repita a operação.");
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Erro na operação do ViewModel {ViewModel}", GetType().Name);

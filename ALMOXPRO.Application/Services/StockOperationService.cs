@@ -64,17 +64,72 @@ public class StockOperationService : IStockOperationService
         decimal quantity, decimal unitCost, StockMovementType type,
         string documentType, int documentId, string? documentNumber, int userId, CancellationToken ct = default)
     {
-        var item = await _uow.Stock.GetItemAsync(productId, warehouseId, lotId, ct);
-        if (item is null)
+        // Lote informado explicitamente: baixa direta naquele lote.
+        if (lotId.HasValue)
         {
-            var product = await _uow.Products.GetByIdAsync(productId, ct);
-            throw new InsufficientStockException(product?.Name ?? $"#{productId}", quantity, 0);
+            var item = await _uow.Stock.GetItemAsync(productId, warehouseId, lotId, ct);
+            if (item is null)
+            {
+                var product = await _uow.Products.GetByIdAsync(productId, ct);
+                throw new InsufficientStockException(product?.Name ?? $"#{productId}", quantity, 0);
+            }
+
+            item.Decrease(quantity);
+            await WriteMovementAsync(productId, warehouseId, lotId, type, -quantity, unitCost,
+                documentType, documentId, documentNumber, userId, ct);
+            return item;
         }
 
-        item.Decrease(quantity);
-        await WriteMovementAsync(productId, warehouseId, lotId, type, -quantity, unitCost,
-            documentType, documentId, documentNumber, userId, ct);
-        return item;
+        // Sem lote informado: consome os saldos por FEFO — o lote que vence
+        // primeiro sai primeiro; saldos sem validade/sem lote saem por último.
+        var items = (await _uow.Stock.GetItemsWithLotsAsync(productId, warehouseId, ct))
+            .OrderBy(i => i.Lot?.ExpirationDate ?? DateOnly.MaxValue)
+            .ThenBy(i => i.LotId.HasValue ? 0 : 1)
+            .ToList();
+
+        var available = items.Sum(i => i.Quantity);
+        if (quantity > available)
+        {
+            var product = await _uow.Products.GetByIdAsync(productId, ct);
+            throw new InsufficientStockException(product?.Name ?? $"#{productId}", quantity, available);
+        }
+
+        var remaining = quantity;
+        var runningBalance = await _uow.Stock.GetTotalQuantityAsync(productId, warehouseId, ct);
+        StockItem last = items[0];
+
+        foreach (var item in items)
+        {
+            if (remaining <= 0)
+                break;
+
+            var take = Math.Min(remaining, item.Quantity);
+            if (take <= 0)
+                continue;
+
+            item.Decrease(take);
+            remaining -= take;
+            runningBalance -= take;
+            last = item;
+
+            await _uow.Stock.AddMovementAsync(new StockMovement
+            {
+                ProductId = productId,
+                WarehouseId = warehouseId,
+                LotId = item.LotId,
+                Type = type,
+                Quantity = -take,
+                UnitCost = unitCost,
+                BalanceAfter = runningBalance,
+                DocumentType = documentType,
+                DocumentId = documentId,
+                DocumentNumber = documentNumber,
+                UserId = userId,
+                MovementDate = DateTime.UtcNow
+            }, ct);
+        }
+
+        return last;
     }
 
     public async Task AdjustAsync(int productId, int warehouseId, int? lotId, decimal countedQuantity,

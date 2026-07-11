@@ -13,47 +13,68 @@
                     </Style>
                 </UniformGrid.Resources>
 
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir cadastro de produtos">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenProductsCommand}" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Produtos" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.TotalProducts, FallbackValue=0}" FontSize="28" FontWeight="Bold" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir relatório de valor em estoque">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="ValorEmEstoque" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Valor do estoque" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.StockTotalValue, StringFormat=C2, FallbackValue=0}" FontSize="24" FontWeight="Bold" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir relatório de entradas">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="Entradas" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Entradas hoje" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.EntriesToday, FallbackValue=0}" FontSize="28" FontWeight="Bold"
                                    Foreground="#2E7D32" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir relatório de saídas">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="Saidas" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Saídas hoje" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.ExitsToday, FallbackValue=0}" FontSize="28" FontWeight="Bold"
                                    Foreground="#C62828" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir relatório de estoque mínimo">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="EstoqueMinimo" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Abaixo do mínimo" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.BelowMinimum, FallbackValue=0}" FontSize="28" FontWeight="Bold"
                                    Foreground="#EF6C00" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card>
+                <materialDesign:Card Cursor="Hand" ToolTip="Abrir relatório de produtos vencidos e a vencer">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="ProdutosVencidos" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="A vencer (30 dias)" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.ExpiringSoon, FallbackValue=0}" FontSize="28" FontWeight="Bold"
                                    Foreground="#F9A825" />
                     </StackPanel>
                 </materialDesign:Card>
-                <materialDesign:Card Margin="0">
+                <materialDesign:Card Margin="0" Cursor="Hand" ToolTip="Abrir relatório de produtos vencidos">
+                    <materialDesign:Card.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenReportCommand}" CommandParameter="ProdutosVencidos" />
+                    </materialDesign:Card.InputBindings>
                     <StackPanel>
                         <TextBlock Text="Vencidos" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.ExpiredProducts, FallbackValue=0}" FontSize="28" FontWeight="Bold"

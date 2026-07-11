@@ -50,6 +50,13 @@ public class AuthService : IAuthService
         if (user.IsLockedOut)
             return Result.Failure<UserSessionDto>("Usuário temporariamente bloqueado por tentativas inválidas. Tente novamente mais tarde.");
 
+        if (!user.CanLoginAt(DateTime.Now))
+        {
+            _logger.LogWarning("Login fora do horário permitido para {Login}", login);
+            return Result.Failure<UserSessionDto>(
+                "Acesso fora do horário permitido para este usuário (verifique dias e horários liberados).");
+        }
+
         if (!_hasher.Verify(password, user.PasswordHash))
         {
             user.RegisterFailedLogin(MaxFailedAttempts, LockDuration);

@@ -43,6 +43,13 @@ public class AlmoxProDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AlmoxProDbContext).Assembly);
+
+        // Controle de concorrência otimista nos saldos: com vários usuários
+        // simultâneos, duas baixas do mesmo item não podem se sobrepor.
+        // Usa a coluna de sistema xmin do PostgreSQL (sem alteração de schema).
+        if (Database.IsNpgsql())
+            modelBuilder.Entity<StockItem>().UseXminAsConcurrencyToken();
+
         base.OnModelCreating(modelBuilder);
     }
 }

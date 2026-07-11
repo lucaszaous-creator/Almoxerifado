@@ -72,7 +72,8 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <DataGrid Grid.Row="0" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                <Grid Grid.Row="0">
+                <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
                           AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Número" Binding="{Binding Number}" Width="110" />
@@ -87,6 +88,10 @@
                         <DataGridTextColumn Header="Itens" Binding="{Binding ItemCount}" Width="60" />
                     </DataGrid.Columns>
                 </DataGrid>
+                <TextBlock Text="Nenhuma requisição por aqui. Clique em NOVA REQUISIÇÃO para registrar o primeiro pedido de um setor."
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" TextWrapping="Wrap"
+                           Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVis}}" />
+                </Grid>
 
                 <TextBlock Grid.Row="1" Text="Itens da requisição selecionada" FontWeight="SemiBold" Margin="0,12,0,4" />
 
@@ -102,6 +107,35 @@
                 </DataGrid>
             </Grid>
         </DockPanel>
+
+        <!-- Painel de atendimento (total ou parcial) -->
+        <Border HorizontalAlignment="Right" Width="560"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsFulfillOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Atender Requisição" FontSize="18" FontWeight="SemiBold"
+                           Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" Margin="0,0,0,16" TextWrapping="Wrap"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Text="Ajuste a coluna 'Entregar agora' para entrega parcial — o saldo não entregue continua pendente." />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="CANCELAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CloseFulfillCommand}" Margin="0,0,8,0" />
+                    <Button Content="CONFIRMAR ENTREGA" Command="{Binding ConfirmFulfillCommand}" />
+                </StackPanel>
+                <DataGrid ItemsSource="{Binding FulfillItems}" AutoGenerateColumns="False" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Produto" Binding="{Binding ProductName}" Width="*" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Solicitado" Binding="{Binding Requested, StringFormat=N2}" Width="85" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Entregue" Binding="{Binding AlreadyFulfilled, StringFormat=N2}" Width="80" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Pendente" Binding="{Binding Remaining, StringFormat=N2}" Width="80" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Entregar agora" Binding="{Binding DeliverNow, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
 
         <Border HorizontalAlignment="Right" Width="560"
                 Background="{DynamicResource MaterialDesignPaper}"

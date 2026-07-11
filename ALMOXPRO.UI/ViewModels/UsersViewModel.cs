@@ -42,6 +42,15 @@ public partial class UsersViewModel : ViewModelBase
     [ObservableProperty]
     private string _newPassword = string.Empty;
 
+    [ObservableProperty]
+    private bool _weekdaysOnly;
+
+    [ObservableProperty]
+    private string _accessStart = string.Empty;
+
+    [ObservableProperty]
+    private string _accessEnd = string.Empty;
+
     public ObservableCollection<UserListDto> Items { get; } = [];
     public ObservableCollection<RoleOption> RoleOptions { get; } = [];
     public Array Statuses => Enum.GetValues(typeof(Domain.Common.UserStatus));
@@ -86,6 +95,9 @@ public partial class UsersViewModel : ViewModelBase
     {
         Editor = new UserUpsertDto();
         NewPassword = string.Empty;
+        WeekdaysOnly = false;
+        AccessStart = string.Empty;
+        AccessEnd = string.Empty;
         foreach (var role in RoleOptions)
             role.IsSelected = false;
         IsEditorOpen = true;
@@ -107,6 +119,9 @@ public partial class UsersViewModel : ViewModelBase
 
         Editor = dto;
         NewPassword = string.Empty;
+        WeekdaysOnly = dto.WeekdaysOnly;
+        AccessStart = dto.AccessStartTime?.ToString("HH\\:mm") ?? string.Empty;
+        AccessEnd = dto.AccessEndTime?.ToString("HH\\:mm") ?? string.Empty;
         foreach (var role in RoleOptions)
             role.IsSelected = dto.RoleIds.Contains(role.Id);
         IsEditorOpen = true;
@@ -117,6 +132,16 @@ public partial class UsersViewModel : ViewModelBase
     {
         Editor.Password = string.IsNullOrWhiteSpace(NewPassword) ? null : NewPassword;
         Editor.RoleIds = RoleOptions.Where(r => r.IsSelected).Select(r => r.Id).ToList();
+        Editor.WeekdaysOnly = WeekdaysOnly;
+
+        // Horários no formato HH:mm; ambos vazios = sem restrição de horário.
+        Editor.AccessStartTime = TimeOnly.TryParse(AccessStart, out var start) ? start : null;
+        Editor.AccessEndTime = TimeOnly.TryParse(AccessEnd, out var end) ? end : null;
+        if (Editor.AccessStartTime.HasValue != Editor.AccessEndTime.HasValue)
+        {
+            Dialog.ShowError("Informe o horário inicial e final (ex.: 07:00 e 18:00), ou deixe ambos vazios.");
+            return;
+        }
 
         var users = services.GetRequiredService<IUserService>();
         var result = await users.SaveAsync(Editor);
