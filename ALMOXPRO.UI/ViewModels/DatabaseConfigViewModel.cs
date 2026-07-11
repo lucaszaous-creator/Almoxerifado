@@ -32,6 +32,10 @@ public partial class DatabaseConfigViewModel : ObservableObject
     [ObservableProperty]
     private string _password = string.Empty;
 
+    /// <summary>Exigido por bancos em nuvem (Neon, Supabase, RDS...).</summary>
+    [ObservableProperty]
+    private bool _useSsl;
+
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
@@ -53,6 +57,7 @@ public partial class DatabaseConfigViewModel : ObservableObject
                 Database = builder.Database ?? Database;
                 Username = builder.Username ?? Username;
                 Password = builder.Password ?? string.Empty;
+                UseSsl = builder.SslMode is SslMode.Require or SslMode.VerifyCA or SslMode.VerifyFull;
             }
             catch (Exception)
             {
@@ -69,7 +74,10 @@ public partial class DatabaseConfigViewModel : ObservableObject
         Port = int.TryParse(Port, out var port) ? port : 5432,
         Database = Database.Trim(),
         Username = Username.Trim(),
-        Password = Password
+        Password = Password,
+        SslMode = UseSsl ? SslMode.Require : SslMode.Prefer,
+        // Bancos em nuvem podem "acordar" na primeira conexão (cold start).
+        Timeout = 30
     }.ConnectionString;
 
     [RelayCommand]
