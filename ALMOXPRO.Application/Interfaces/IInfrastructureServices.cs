@@ -76,6 +76,26 @@ public interface IRequisitionDocumentGenerator
     byte[] GeneratePdf(RequisitionDocument document);
 }
 
+/// <summary>Nova versão disponível para atualização do aplicativo.</summary>
+public record UpdateInfo(
+    Version Version,
+    string TagName,
+    string InstallerName,
+    string InstallerUrl,
+    string? ReleaseNotes);
+
+/// <summary>Verificação e download de atualizações do aplicativo.</summary>
+public interface IUpdateService
+{
+    Version CurrentVersion { get; }
+
+    /// <summary>Retorna a nova versão quando houver, ou null se já está atualizado.</summary>
+    Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken ct = default);
+
+    /// <summary>Baixa o instalador para uma pasta temporária e retorna o caminho.</summary>
+    Task<string> DownloadInstallerAsync(UpdateInfo update, CancellationToken ct = default);
+}
+
 public interface IBackupService
 {
     Task<string> BackupAsync(string? targetDirectory = null, bool compress = true, CancellationToken ct = default);
