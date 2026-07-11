@@ -17,6 +17,7 @@
             <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
             <converters:InverseBoolConverter x:Key="InverseBool" />
             <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+            <converters:NotNullToVisibilityConverter x:Key="NotNullToVis" />
 
             <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
                 <views:DashboardView />

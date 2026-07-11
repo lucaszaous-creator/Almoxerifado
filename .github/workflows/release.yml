@@ -1,0 +1,72 @@
+name: Release ALMOX PRO
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Definir versão
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF -like 'refs/tags/v*') { $env:GITHUB_REF -replace 'refs/tags/v', '' } else { '1.0.0' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Testes
+        run: dotnet test ALMOXPRO.Tests/ALMOXPRO.Tests.csproj --configuration Release
+
+      - name: Publicar (self-contained, win-x64)
+        run: >
+          dotnet publish ALMOXPRO.UI/ALMOXPRO.UI.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.version }}
+          --output publish
+
+      - name: Gerar pacote portátil (zip)
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath "ALMOXPRO-Portable-${{ steps.version.outputs.version }}.zip"
+
+      - name: Compilar instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=${{ steps.version.outputs.version }} `
+            /DPublishDir=$env:GITHUB_WORKSPACE\publish `
+            /O$env:GITHUB_WORKSPACE `
+            installer\ALMOXPRO.iss
+
+      - name: Publicar artefatos do workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: ALMOXPRO-${{ steps.version.outputs.version }}
+          path: |
+            ALMOXPRO-Setup-*.exe
+            ALMOXPRO-Portable-*.zip
+
+      - name: Criar GitHub Release (apenas em tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          "ALMOXPRO-Setup-${{ steps.version.outputs.version }}.exe"
+          "ALMOXPRO-Portable-${{ steps.version.outputs.version }}.zip"
+          --title "ALMOX PRO ${{ steps.version.outputs.version }}"
+          --generate-notes

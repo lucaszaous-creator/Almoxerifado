@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+# .NET / ALMOX PRO
 bin/
 obj/
 *.user
@@ -7,7 +7,7 @@ obj/
 publish/
 TestResults/
 appsettings.local.json
-=======
+
 # dependencies
 /node_modules
 /.pnp
@@ -40,4 +40,3 @@ next-env.d.ts
 # supabase
 .branches
 .temp
->>>>>>> 4e1ca243c85517ce66382cba9a69c55951b0172f

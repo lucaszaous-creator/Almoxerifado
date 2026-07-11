@@ -1,5 +1,122 @@
 # 📦 Almoxarifado & Compras
 
+Este repositório contém **duas aplicações**:
+
+1. **ALMOX PRO** — sistema desktop (Windows/WPF) completo de gestão de
+   almoxarifado. Veja a seção [ALMOX PRO (desktop)](#-almox-pro-desktop).
+2. **Almoxarifado & Compras (web)** — sistema web (Next.js + Supabase)
+   documentado no restante deste README.
+
+---
+
+## 🖥️ ALMOX PRO (desktop)
+
+Software desktop corporativo de gestão de almoxarifado em **C# / .NET 8**,
+com **WPF + MVVM (CommunityToolkit.Mvvm) + Material Design in XAML** e
+banco **PostgreSQL** via **Entity Framework Core** (migrations incluídas).
+
+### Arquitetura (Clean Architecture)
+
+```
+ALMOXPRO.Domain          # entidades e regras de negócio (sem dependências)
+ALMOXPRO.Application     # serviços, DTOs, validações (FluentValidation), interfaces
+ALMOXPRO.Infrastructure  # PDF (QuestPDF), Excel (ClosedXML), barcode (ZXing.Net),
+                         # QR Code (QRCoder), backup (pg_dump), e-mail, hash PBKDF2
+ALMOXPRO.Persistence     # EF Core + Npgsql, repositórios, Unit of Work,
+                         # migrations, seed e interceptor de auditoria
+ALMOXPRO.UI              # WPF: views, viewmodels, tema claro/escuro, sessão
+ALMOXPRO.Shared          # Result, paginação, códigos de permissão (RBAC)
+ALMOXPRO.Tests           # testes unitários (xUnit)
+```
+
+### Módulos
+
+Login e sessão · usuários · perfis/permissões (RBAC) · auditoria completa ·
+produtos (código de barras, QR Code, lote, validade, patrimônio) · categorias
+e subcategorias · fornecedores (validação de CNPJ) · localizações com etiqueta
+QR · entradas · saídas · transferências entre almoxarifados · inventário
+geral/rotativo com leitura de código de barras · dashboard (curva ABC,
+críticos, vencidos) · relatórios com exportação **PDF / Excel / CSV** ·
+etiquetas · backup/restauração do PostgreSQL · configurações.
+
+### Instalação (usuário final)
+
+O instalador é gerado pelo workflow **Release ALMOX PRO** (GitHub Actions):
+ao criar uma tag `v*` (ex.: `v1.0.0`), ele publica na página de
+**Releases** do repositório dois arquivos:
+
+- **`ALMOXPRO-Setup-<versão>.exe`** — instalador Windows (Inno Setup) com
+  atalhos no Menu Iniciar/Área de Trabalho e desinstalador. **Não requer
+  .NET instalado** (publicação self-contained).
+- **`ALMOXPRO-Portable-<versão>.zip`** — versão portátil: extraia e execute
+  `ALMOXPRO.exe`.
+
+Passos na máquina do cliente:
+
+1. Execute o `ALMOXPRO-Setup-<versão>.exe` e conclua o assistente.
+2. Garanta um **PostgreSQL** acessível (local ou servidor de rede).
+3. Configure a conexão com o banco (veja abaixo) e abra o ALMOX PRO.
+   Na primeira execução as **migrations são aplicadas automaticamente** e o
+   seed cria o usuário **`admin`** (senha inicial `admin`, com troca
+   obrigatória no primeiro acesso).
+
+Em atualizações, o instalador **preserva o `appsettings.json`** já
+configurado no cliente.
+
+### Configuração do banco de dados
+
+**Pela interface (recomendado):** se o banco não estiver acessível ao abrir
+o ALMOX PRO, uma tela de **"Conexão com o banco"** é exibida
+automaticamente com os campos servidor, porta, banco, usuário e senha,
+botão **Testar conexão** e **Salvar e continuar**. A configuração é
+gravada em `C:\ProgramData\ALMOXPRO\appsettings.json` (não requer
+administrador e **sobrevive a atualizações** do aplicativo).
+
+**Pelos arquivos:** a connection string padrão fica em
+**`appsettings.json`** na pasta de instalação (ex.:
+`C:\Program Files\ALMOX PRO\appsettings.json`; no código-fonte,
+`ALMOXPRO.UI/appsettings.json`), e o arquivo de override em
+`C:\ProgramData\ALMOXPRO\appsettings.json` tem precedência:
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=almoxpro;Username=postgres;Password=postgres"
+  }
+}
+```
+
+O instalador também cria o atalho **"Configurar banco de dados"** no Menu
+Iniciar, que abre o arquivo no Bloco de Notas.
+
+### Como rodar em desenvolvimento
+
+1. Instale o [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+   e um PostgreSQL local (ou aponte para um servidor).
+2. Ajuste a connection string em `ALMOXPRO.UI/appsettings.json`.
+3. Compile e execute:
+   ```bash
+   dotnet build ALMOXPRO.sln
+   dotnet run --project ALMOXPRO.UI
+   ```
+4. Testes:
+   ```bash
+   dotnet test ALMOXPRO.Tests/ALMOXPRO.Tests.csproj
+   ```
+5. Para gerar o executável/instalador localmente (Windows):
+   ```powershell
+   dotnet publish ALMOXPRO.UI/ALMOXPRO.UI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+   iscc /DAppVersion=1.0.0 /DPublishDir=%cd%\publish installer\ALMOXPRO.iss
+   ```
+
+> Em Linux/macOS o código compila com
+> `dotnet build ALMOXPRO.sln -p:EnableWindowsTargeting=true`
+> (a execução da interface WPF requer Windows).
+
+---
+
+## 🌐 Almoxarifado & Compras (web)
+
 Sistema web para controle do almoxarifado e pedidos de compra, pensado para
 reduzir o tempo perdido pelos funcionários procurando itens e dar visibilidade
 ao **gerente** e ao **responsável pelo almoxarifado (almoxarife)**.

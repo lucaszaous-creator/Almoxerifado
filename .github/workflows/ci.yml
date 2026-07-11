@@ -30,3 +30,21 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
+  almoxpro-desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ALMOXPRO.sln -p:EnableWindowsTargeting=true
+
+      - name: Build
+        run: dotnet build ALMOXPRO.sln -p:EnableWindowsTargeting=true --no-restore --configuration Release
+
+      - name: Testes
+        run: dotnet test ALMOXPRO.Tests/ALMOXPRO.Tests.csproj -p:EnableWindowsTargeting=true --no-restore --configuration Release
