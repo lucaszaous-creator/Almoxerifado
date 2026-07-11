@@ -119,6 +119,9 @@ public class FiscalDemoFlowTests : IDisposable
             => throw new InvalidOperationException("Gateway não deve ser chamado no modo demonstração.");
         public CertificateInfo InspectCertificate(byte[] pfxBytes, string password)
             => throw new InvalidOperationException();
+        public IReadOnlyList<InstalledCertificate> ListInstalledCertificates() => [];
+        public CertificateInfo InspectStoreCertificate(string thumbprint)
+            => throw new InvalidOperationException();
     }
 
     private sealed class NoopDanfe : IDanfeGenerator
