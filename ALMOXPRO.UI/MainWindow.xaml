@@ -97,6 +97,26 @@
                             VerticalAlignment="Center">
                         <materialDesign:PackIcon Kind="ThemeLightDark" />
                     </Button>
+
+                    <!-- Notificação de atualização disponível -->
+                    <Button DockPanel.Dock="Right" Margin="0,0,4,0" VerticalAlignment="Center"
+                            Background="#2E7D32" BorderBrush="#2E7D32"
+                            Command="{Binding InstallUpdateCommand}"
+                            Visibility="{Binding AvailableUpdate, Converter={StaticResource NotNullToVis}}"
+                            IsEnabled="{Binding IsUpdating, Converter={StaticResource InverseBool}}"
+                            ToolTip="Baixar e instalar a nova versão. Configurações e banco são preservados.">
+                        <StackPanel Orientation="Horizontal">
+                            <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                         IsIndeterminate="True" Width="16" Height="16" Margin="0,0,6,0"
+                                         Foreground="White"
+                                         Visibility="{Binding IsUpdating, Converter={StaticResource BoolToVis}}" />
+                            <materialDesign:PackIcon Kind="Download" VerticalAlignment="Center"
+                                                     Visibility="{Binding IsUpdating, Converter={StaticResource InverseBoolToVis}}" />
+                            <TextBlock Margin="6,0,0,0" VerticalAlignment="Center">
+                                <Run Text="ATUALIZAR PARA " /><Run Text="{Binding AvailableUpdate.TagName, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Button>
                 </DockPanel>
             </Border>
 

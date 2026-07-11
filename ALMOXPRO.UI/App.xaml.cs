@@ -92,6 +92,15 @@ public partial class App : System.Windows.Application
                 services.AddPersistence(connectionString);
                 services.AddInfrastructure(connectionString);
 
+                var updateOwner = context.Configuration["Updates:Owner"];
+                var updateRepository = context.Configuration["Updates:Repository"];
+                if (!string.IsNullOrWhiteSpace(updateOwner) && !string.IsNullOrWhiteSpace(updateRepository))
+                {
+                    services.AddSingleton<IUpdateService>(provider =>
+                        new Infrastructure.Updates.GitHubUpdateService(updateOwner, updateRepository,
+                            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Infrastructure.Updates.GitHubUpdateService>>()));
+                }
+
                 services.AddSingleton<ISessionService, SessionService>();
                 services.AddSingleton<ICurrentSession>(provider => provider.GetRequiredService<ISessionService>());
                 services.AddSingleton<IThemeService, ThemeService>();

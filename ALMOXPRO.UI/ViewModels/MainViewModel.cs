@@ -1,3 +1,4 @@
+using ALMOXPRO.Application.Interfaces;
 using ALMOXPRO.Application.Services;
 using ALMOXPRO.Domain.Entities.Configuration;
 using ALMOXPRO.Shared.Security;
@@ -6,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 
 namespace ALMOXPRO.UI.ViewModels;
@@ -32,6 +34,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDarkTheme;
 
+    [ObservableProperty]
+    private UpdateInfo? _availableUpdate;
+
+    [ObservableProperty]
+    private bool _isUpdating;
+
     public string UserName => _session.Current?.Name ?? string.Empty;
     public string UserLogin => _session.Current?.Login ?? string.Empty;
 
@@ -51,6 +59,59 @@ public partial class MainViewModel : ViewModelBase
         var first = NavItems.FirstOrDefault();
         if (first is not null)
             SelectedNavItem = first;
+
+        _ = CheckForUpdatesAsync();
+    }
+
+    /// <summary>Verificação silenciosa em segundo plano; nunca interrompe o uso.</summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        var updates = App.Services.GetService<IUpdateService>();
+        if (updates is null)
+            return;
+
+        try
+        {
+            AvailableUpdate = await updates.CheckForUpdateAsync();
+        }
+        catch (Exception)
+        {
+            // Sem rede: o botão simplesmente não aparece.
+        }
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdateAsync()
+    {
+        if (AvailableUpdate is null || IsUpdating)
+            return;
+
+        if (!Dialog.Confirm(
+                $"Baixar e instalar a versão {AvailableUpdate.TagName}?\n\n" +
+                "O aplicativo será fechado para concluir a atualização. " +
+                "Suas configurações e o banco de dados são preservados.",
+                "Atualização do ALMOX PRO"))
+            return;
+
+        IsUpdating = true;
+        try
+        {
+            var updates = App.Services.GetRequiredService<IUpdateService>();
+            var installerPath = await updates.DownloadInstallerAsync(AvailableUpdate);
+
+            // Instalação silenciosa do Inno Setup; o app reabre ao final.
+            Process.Start(new ProcessStartInfo(installerPath)
+            {
+                UseShellExecute = true,
+                Arguments = "/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS"
+            });
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            IsUpdating = false;
+            Dialog.ShowError($"Não foi possível baixar a atualização:\n{ex.Message}");
+        }
     }
 
     private void BuildNavigation()
