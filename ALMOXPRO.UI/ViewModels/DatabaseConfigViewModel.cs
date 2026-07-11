@@ -78,12 +78,14 @@ public partial class DatabaseConfigViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await OpenConnectionAsync();
-            StatusMessage = "Conexão estabelecida com sucesso.";
+            var databaseExists = await OpenConnectionAsync();
+            StatusMessage = databaseExists
+                ? "Conexão estabelecida com sucesso."
+                : $"Conexão OK. O banco \"{Database.Trim()}\" ainda não existe e será criado automaticamente ao continuar.";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Falha na conexão: {ex.Message}";
+            StatusMessage = FriendlyMessage(ex);
         }
         finally
         {
@@ -109,7 +111,7 @@ public partial class DatabaseConfigViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Falha na conexão: {ex.Message}";
+            StatusMessage = FriendlyMessage(ex);
         }
         finally
         {
@@ -120,9 +122,45 @@ public partial class DatabaseConfigViewModel : ObservableObject
     [RelayCommand]
     private void Cancel() => Cancelled?.Invoke(this, EventArgs.Empty);
 
-    private async Task OpenConnectionAsync()
+    /// <summary>
+    /// Abre a conexão com o banco configurado. Se o banco ainda não existir,
+    /// valida servidor e credenciais no banco de manutenção "postgres" — o
+    /// EF Core cria o banco na primeira inicialização. Retorna true quando o
+    /// banco configurado já existe.
+    /// </summary>
+    private async Task<bool> OpenConnectionAsync()
     {
-        await using var connection = new NpgsqlConnection(BuildConnectionString());
-        await connection.OpenAsync();
+        try
+        {
+            await using var connection = new NpgsqlConnection(BuildConnectionString());
+            await connection.OpenAsync();
+            return true;
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.InvalidCatalogName)
+        {
+            var builder = new NpgsqlConnectionStringBuilder(BuildConnectionString()) { Database = "postgres" };
+            await using var connection = new NpgsqlConnection(builder.ConnectionString);
+            await connection.OpenAsync();
+            return false;
+        }
     }
+
+    /// <summary>
+    /// Mensagens em português para os erros mais comuns. O servidor envia as
+    /// mensagens localizadas em codificação incompatível antes da negociação
+    /// (aparecem com "�"), então os casos conhecidos são traduzidos aqui.
+    /// </summary>
+    private string FriendlyMessage(Exception ex) => ex switch
+    {
+        PostgresException pg when pg.SqlState == PostgresErrorCodes.InvalidPassword =>
+            $"Senha incorreta para o usuário \"{Username.Trim()}\".",
+        PostgresException pg when pg.SqlState == PostgresErrorCodes.InvalidAuthorizationSpecification =>
+            $"Acesso negado para o usuário \"{Username.Trim()}\". Verifique o usuário e o pg_hba.conf.",
+        PostgresException pg when pg.SqlState == PostgresErrorCodes.InsufficientPrivilege =>
+            $"O usuário \"{Username.Trim()}\" não tem permissão para acessar o banco \"{Database.Trim()}\".",
+        PostgresException pg => $"Erro do PostgreSQL ({pg.SqlState}): {pg.MessageText}",
+        NpgsqlException => $"Servidor inacessível em {Host.Trim()}:{Port.Trim()}. " +
+                           "Verifique se o PostgreSQL está em execução e se o host e a porta estão corretos.",
+        _ => $"Falha na conexão: {ex.Message}"
+    };
 }
