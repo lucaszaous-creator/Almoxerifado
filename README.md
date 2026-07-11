@@ -39,7 +39,51 @@ geral/rotativo com leitura de código de barras · dashboard (curva ABC,
 críticos, vencidos) · relatórios com exportação **PDF / Excel / CSV** ·
 etiquetas · backup/restauração do PostgreSQL · configurações.
 
-### Como rodar (Windows)
+### Instalação (usuário final)
+
+O instalador é gerado pelo workflow **Release ALMOX PRO** (GitHub Actions):
+ao criar uma tag `v*` (ex.: `v1.0.0`), ele publica na página de
+**Releases** do repositório dois arquivos:
+
+- **`ALMOXPRO-Setup-<versão>.exe`** — instalador Windows (Inno Setup) com
+  atalhos no Menu Iniciar/Área de Trabalho e desinstalador. **Não requer
+  .NET instalado** (publicação self-contained).
+- **`ALMOXPRO-Portable-<versão>.zip`** — versão portátil: extraia e execute
+  `ALMOXPRO.exe`.
+
+Passos na máquina do cliente:
+
+1. Execute o `ALMOXPRO-Setup-<versão>.exe` e conclua o assistente.
+2. Garanta um **PostgreSQL** acessível (local ou servidor de rede).
+3. Configure a conexão com o banco (veja abaixo) e abra o ALMOX PRO.
+   Na primeira execução as **migrations são aplicadas automaticamente** e o
+   seed cria o usuário **`admin`** (senha inicial `admin`, com troca
+   obrigatória no primeiro acesso).
+
+Em atualizações, o instalador **preserva o `appsettings.json`** já
+configurado no cliente.
+
+### Configuração do banco de dados
+
+A connection string fica em **`appsettings.json`**, na pasta de instalação
+(ex.: `C:\Program Files\ALMOX PRO\appsettings.json`; no código-fonte,
+`ALMOXPRO.UI/appsettings.json`):
+
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=almoxpro;Username=postgres;Password=postgres"
+  }
+}
+```
+
+Ajuste `Host`, `Port`, `Database`, `Username` e `Password` para o seu
+ambiente. O instalador cria o atalho **"Configurar banco de dados"** no
+Menu Iniciar, que abre esse arquivo no Bloco de Notas. Se a conexão
+falhar, o aplicativo exibe uma mensagem orientando a revisar essa
+configuração.
+
+### Como rodar em desenvolvimento
 
 1. Instale o [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
    e um PostgreSQL local (ou aponte para um servidor).
@@ -49,11 +93,14 @@ etiquetas · backup/restauração do PostgreSQL · configurações.
    dotnet build ALMOXPRO.sln
    dotnet run --project ALMOXPRO.UI
    ```
-   Na primeira execução as migrations são aplicadas e o seed cria o usuário
-   administrador inicial (`admin`).
 4. Testes:
    ```bash
    dotnet test ALMOXPRO.Tests/ALMOXPRO.Tests.csproj
+   ```
+5. Para gerar o executável/instalador localmente (Windows):
+   ```powershell
+   dotnet publish ALMOXPRO.UI/ALMOXPRO.UI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+   iscc /DAppVersion=1.0.0 /DPublishDir=%cd%\publish installer\ALMOXPRO.iss
    ```
 
 > Em Linux/macOS o código compila com
