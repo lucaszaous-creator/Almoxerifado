@@ -407,3 +407,34 @@ public class DocumentSequenceConfiguration : IEntityTypeConfiguration<DocumentSe
         builder.HasIndex(s => s.Key).IsUnique();
     }
 }
+
+public class RequisitionConfiguration : IEntityTypeConfiguration<Requisition>
+{
+    public void Configure(EntityTypeBuilder<Requisition> builder)
+    {
+        builder.ToTable("requisitions");
+        builder.Property(r => r.Number).HasMaxLength(20).IsRequired();
+        builder.Property(r => r.RequesterName).HasMaxLength(150);
+        builder.Property(r => r.Notes).HasMaxLength(1000);
+        builder.HasIndex(r => r.Number).IsUnique();
+        builder.HasIndex(r => r.RequestDate);
+        builder.HasIndex(r => r.Status);
+        builder.HasOne(r => r.Warehouse).WithMany().HasForeignKey(r => r.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(r => r.Sector).WithMany().HasForeignKey(r => r.SectorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(r => r.Employee).WithMany().HasForeignKey(r => r.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(r => r.MaterialExit).WithMany().HasForeignKey(r => r.MaterialExitId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class RequisitionItemConfiguration : IEntityTypeConfiguration<RequisitionItem>
+{
+    public void Configure(EntityTypeBuilder<RequisitionItem> builder)
+    {
+        builder.ToTable("requisition_items");
+        builder.Property(i => i.QuantityRequested).HasPrecision(18, 4);
+        builder.Property(i => i.QuantityFulfilled).HasPrecision(18, 4);
+        builder.Property(i => i.Notes).HasMaxLength(500);
+        builder.HasOne(i => i.Requisition).WithMany(r => r.Items).HasForeignKey(i => i.RequisitionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(i => i.Product).WithMany().HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Restrict);
+    }
+}

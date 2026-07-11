@@ -1,0 +1,136 @@
+<UserControl x:Class="ALMOXPRO.UI.Views.OrganizationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <WrapPanel>
+            <WrapPanel.Resources>
+                <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+                    <Setter Property="Margin" Value="0,0,0,12" />
+                </Style>
+            </WrapPanel.Resources>
+
+            <!-- Setores -->
+            <materialDesign:Card Width="380" Margin="0,0,16,16" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="Sitemap" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Setores" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="Cozinha, padaria, governança, recepção, restaurante..."
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" FontSize="12"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <DataGrid ItemsSource="{Binding Sectors}" SelectedItem="{Binding SelectedSector}"
+                              AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="220"
+                              SelectionMode="Single" Margin="0,0,0,12">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBox materialDesign:HintAssist.Hint="Nome do setor" Text="{Binding SectorName}"
+                             IsEnabled="{Binding CanManage}" />
+                    <CheckBox Content="Ativo" IsChecked="{Binding SectorActive}" IsEnabled="{Binding CanManage}"
+                              Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                        <Button Content="NOVO" Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding NewSectorCommand}" Margin="0,0,8,0" />
+                        <Button Content="SALVAR SETOR" Command="{Binding SaveSectorCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Funcionários -->
+            <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="AccountGroup" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Funcionários" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="Quem pode solicitar e retirar materiais nas requisições e saídas."
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" FontSize="12"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <DataGrid ItemsSource="{Binding Employees}" SelectedItem="{Binding SelectedEmployee}"
+                              AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="220"
+                              SelectionMode="Single" Margin="0,0,0,12">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="Matrícula" Binding="{Binding RegistrationNumber}" Width="90" />
+                            <DataGridTextColumn Header="Setor" Binding="{Binding Sector.Name}" Width="110" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBox materialDesign:HintAssist.Hint="Nome do funcionário" Text="{Binding EmployeeName}"
+                             IsEnabled="{Binding CanManage}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Matrícula"
+                                 Text="{Binding EmployeeRegistration}" IsEnabled="{Binding CanManage}" />
+                        <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Setor"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding Sectors}" DisplayMemberPath="Name"
+                                  SelectedItem="{Binding EmployeeSector}" IsEnabled="{Binding CanManage}"
+                                  Margin="0,0,0,12" />
+                    </Grid>
+                    <CheckBox Content="Ativo" IsChecked="{Binding EmployeeActive}" IsEnabled="{Binding CanManage}"
+                              Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                        <Button Content="NOVO" Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding NewEmployeeCommand}" Margin="0,0,8,0" />
+                        <Button Content="SALVAR FUNCIONÁRIO" Command="{Binding SaveEmployeeCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Centros de custo -->
+            <materialDesign:Card Width="380" Margin="0,0,16,16" Padding="20">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="CashMultiple" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Centros de Custo" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="Para apropriação contábil das saídas de materiais."
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" FontSize="12"
+                               Margin="0,0,0,8" TextWrapping="Wrap" />
+                    <DataGrid ItemsSource="{Binding CostCenters}" SelectedItem="{Binding SelectedCostCenter}"
+                              AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="220"
+                              SelectionMode="Single" Margin="0,0,0,12">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Código" Binding="{Binding Code}" Width="90" />
+                            <DataGridTextColumn Header="Nome" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Código"
+                                 Text="{Binding CostCenterCode}" IsEnabled="{Binding CanManage}" />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Nome"
+                                 Text="{Binding CostCenterName}" IsEnabled="{Binding CanManage}" />
+                    </Grid>
+                    <CheckBox Content="Ativo" IsChecked="{Binding CostCenterActive}" IsEnabled="{Binding CanManage}"
+                              Margin="0,0,0,12" />
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                        <Button Content="NOVO" Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding NewCostCenterCommand}" Margin="0,0,8,0" />
+                        <Button Content="SALVAR CENTRO DE CUSTO" Command="{Binding SaveCostCenterCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+        </WrapPanel>
+    </ScrollViewer>
+</UserControl>

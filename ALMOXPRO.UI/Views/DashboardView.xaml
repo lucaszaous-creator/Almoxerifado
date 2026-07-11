@@ -5,7 +5,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
             <!-- Cartões de indicadores -->
-            <UniformGrid Columns="6" Margin="0,0,0,16">
+            <UniformGrid Columns="7" Margin="0,0,0,16">
                 <UniformGrid.Resources>
                     <Style TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
                         <Setter Property="Margin" Value="0,0,12,0" />
@@ -44,6 +44,13 @@
                         <TextBlock Text="Abaixo do mínimo" Opacity="0.6" FontSize="12" />
                         <TextBlock Text="{Binding Data.BelowMinimum, FallbackValue=0}" FontSize="28" FontWeight="Bold"
                                    Foreground="#EF6C00" />
+                    </StackPanel>
+                </materialDesign:Card>
+                <materialDesign:Card>
+                    <StackPanel>
+                        <TextBlock Text="A vencer (30 dias)" Opacity="0.6" FontSize="12" />
+                        <TextBlock Text="{Binding Data.ExpiringSoon, FallbackValue=0}" FontSize="28" FontWeight="Bold"
+                                   Foreground="#F9A825" />
                     </StackPanel>
                 </materialDesign:Card>
                 <materialDesign:Card Margin="0">

@@ -76,7 +76,7 @@ public static class DbSeeder
         // Sequências de documentos.
         var sequences = new (string Key, string Prefix)[]
         {
-            ("entry", "ENT"), ("exit", "SAI"), ("transfer", "TRF"), ("inventory", "INV")
+            ("entry", "ENT"), ("exit", "SAI"), ("transfer", "TRF"), ("inventory", "INV"), ("requisition", "REQ")
         };
         foreach (var (key, prefix) in sequences)
         {

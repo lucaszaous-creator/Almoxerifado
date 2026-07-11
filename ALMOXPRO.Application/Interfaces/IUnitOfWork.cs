@@ -19,6 +19,7 @@ public interface IUnitOfWork : IDisposable
     IMaterialExitRepository Exits { get; }
     IStockTransferRepository Transfers { get; }
     IInventoryRepository Inventories { get; }
+    IRequisitionRepository Requisitions { get; }
     IAuditLogRepository AuditLogs { get; }
     IAppSettingRepository Settings { get; }
     IDocumentSequenceRepository Sequences { get; }

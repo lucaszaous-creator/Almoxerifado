@@ -55,6 +55,27 @@ public interface ILabelGenerator
     byte[] LocationLabelPdf(string locationCode, string warehouseName, int copies = 1);
 }
 
+/// <summary>Dados do documento de requisição para impressão e assinatura.</summary>
+public record RequisitionDocument(
+    string CompanyName,
+    string Number,
+    string Status,
+    string WarehouseName,
+    string SectorName,
+    string RequestedBy,
+    string CreatedByUser,
+    DateTime RequestDate,
+    string? Notes,
+    IReadOnlyList<RequisitionDocumentItem> Items);
+
+public record RequisitionDocumentItem(string Code, string Name, string Unit, decimal Quantity);
+
+/// <summary>Geração do PDF da requisição com campos de assinatura.</summary>
+public interface IRequisitionDocumentGenerator
+{
+    byte[] GeneratePdf(RequisitionDocument document);
+}
+
 public interface IBackupService
 {
     Task<string> BackupAsync(string? targetDirectory = null, bool compress = true, CancellationToken ct = default);

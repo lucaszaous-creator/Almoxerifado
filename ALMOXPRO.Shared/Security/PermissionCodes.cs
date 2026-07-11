@@ -38,6 +38,15 @@ public static class PermissionCodes
     public const string InventoryExecute = "inventory.execute";
     public const string InventoryAdjust = "inventory.adjust";
 
+    // Requisições
+    public const string RequisitionsView = "requisitions.view";
+    public const string RequisitionsCreate = "requisitions.create";
+    public const string RequisitionsFulfill = "requisitions.fulfill";
+
+    // Setores, funcionários e centros de custo
+    public const string OrganizationView = "organization.view";
+    public const string OrganizationManage = "organization.manage";
+
     // Compras
     public const string PurchasesView = "purchases.view";
     public const string PurchasesManage = "purchases.manage";
@@ -83,6 +92,11 @@ public static class PermissionCodes
         [InventoryView] = "Visualizar inventário",
         [InventoryExecute] = "Executar inventário",
         [InventoryAdjust] = "Ajustar inventário",
+        [RequisitionsView] = "Visualizar requisições",
+        [RequisitionsCreate] = "Criar requisições",
+        [RequisitionsFulfill] = "Atender e cancelar requisições",
+        [OrganizationView] = "Visualizar setores e equipe",
+        [OrganizationManage] = "Gerenciar setores e equipe",
         [PurchasesView] = "Visualizar compras",
         [PurchasesManage] = "Gerenciar compras",
         [ReportsView] = "Visualizar relatórios",

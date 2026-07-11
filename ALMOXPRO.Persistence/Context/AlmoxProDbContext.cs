@@ -31,6 +31,7 @@ public class AlmoxProDbContext : DbContext
     public DbSet<MaterialExit> MaterialExits => Set<MaterialExit>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<InventoryCount> InventoryCounts => Set<InventoryCount>();
+    public DbSet<Requisition> Requisitions => Set<Requisition>();
 
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Sector> Sectors => Set<Sector>();

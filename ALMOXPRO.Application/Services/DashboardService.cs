@@ -42,6 +42,15 @@ public class DashboardService : IDashboardService
             .Distinct()
             .Count();
 
+        // Lotes que vencem nos próximos 30 dias (alerta antecipado de validade).
+        var expiringLimit = todayDate.AddDays(30);
+        var expiringSoon = balances
+            .Where(b => b.Quantity > 0 && b.Lot?.ExpirationDate is not null
+                     && b.Lot.ExpirationDate >= todayDate && b.Lot.ExpirationDate <= expiringLimit)
+            .Select(b => b.ProductId)
+            .Distinct()
+            .Count();
+
         // Curva ABC pelo valor em estoque.
         var abc = new List<AbcItemDto>();
         var ranked = byProduct
@@ -86,6 +95,7 @@ public class DashboardService : IDashboardService
             exitsToday,
             critical,
             expired,
+            expiringSoon,
             belowMinimum,
             abc,
             recent,
