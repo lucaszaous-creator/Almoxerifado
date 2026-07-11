@@ -1,5 +1,6 @@
 using ALMOXPRO.Domain.Common;
 using ALMOXPRO.Domain.Entities.Catalog;
+using ALMOXPRO.Domain.Entities.Fiscal;
 using ALMOXPRO.Domain.Entities.Configuration;
 using ALMOXPRO.Domain.Entities.Movements;
 using ALMOXPRO.Domain.Entities.Organization;
@@ -127,6 +128,13 @@ public interface IDocumentSequenceRepository : IRepository<DocumentSequence>
 {
     /// <summary>Obtém e incrementa a sequência com bloqueio, garantindo numeração única.</summary>
     Task<string> NextNumberAsync(string key, string prefix, CancellationToken ct = default);
+}
+
+public interface IFiscalDocumentRepository : IRepository<FiscalDocument>
+{
+    Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default);
+    Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query, FiscalDocumentStatus? status = null,
+        CancellationToken ct = default);
 }
 
 public interface ICostCenterRepository : IRepository<CostCenter>;

@@ -27,6 +27,7 @@ public class UnitOfWork : IUnitOfWork
         Transfers = new StockTransferRepository(context);
         Inventories = new InventoryRepository(context);
         Requisitions = new RequisitionRepository(context);
+        FiscalDocuments = new FiscalDocumentRepository(context);
         AuditLogs = new AuditLogRepository(context);
         Settings = new AppSettingRepository(context);
         Sequences = new DocumentSequenceRepository(context);
@@ -50,6 +51,7 @@ public class UnitOfWork : IUnitOfWork
     public IStockTransferRepository Transfers { get; }
     public IInventoryRepository Inventories { get; }
     public IRequisitionRepository Requisitions { get; }
+    public IFiscalDocumentRepository FiscalDocuments { get; }
     public IAuditLogRepository AuditLogs { get; }
     public IAppSettingRepository Settings { get; }
     public IDocumentSequenceRepository Sequences { get; }

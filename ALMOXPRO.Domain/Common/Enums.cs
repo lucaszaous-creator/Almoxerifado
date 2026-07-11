@@ -54,6 +54,19 @@ public enum RequisitionStatus
     AtendidaParcial = 4
 }
 
+/// <summary>Situação da NF-e recebida em relação à manifestação do destinatário.</summary>
+public enum FiscalDocumentStatus
+{
+    /// <summary>Resumo/nota recebida da SEFAZ, sem manifestação.</summary>
+    Recebida = 1,
+    /// <summary>Ciência da Operação registrada (libera o download do XML completo).</summary>
+    Ciencia = 2,
+    Confirmada = 3,
+    Desconhecida = 4,
+    /// <summary>Recusada: Operação não Realizada (exige justificativa).</summary>
+    OperacaoNaoRealizada = 5
+}
+
 public enum InventoryType
 {
     Geral = 1,

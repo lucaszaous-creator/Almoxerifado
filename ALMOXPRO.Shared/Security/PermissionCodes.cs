@@ -51,6 +51,10 @@ public static class PermissionCodes
     public const string PurchasesView = "purchases.view";
     public const string PurchasesManage = "purchases.manage";
 
+    // Fiscal (NF-e)
+    public const string FiscalView = "fiscal.view";
+    public const string FiscalManifest = "fiscal.manifest";
+
     // Relatórios
     public const string ReportsView = "reports.view";
     public const string ReportsExport = "reports.export";
@@ -99,6 +103,8 @@ public static class PermissionCodes
         [OrganizationManage] = "Gerenciar setores e equipe",
         [PurchasesView] = "Visualizar compras",
         [PurchasesManage] = "Gerenciar compras",
+        [FiscalView] = "Visualizar notas fiscais (NF-e)",
+        [FiscalManifest] = "Manifestar NF-e (ciência, confirmação, recusa)",
         [ReportsView] = "Visualizar relatórios",
         [ReportsExport] = "Exportar relatórios",
         [UsersView] = "Visualizar usuários",

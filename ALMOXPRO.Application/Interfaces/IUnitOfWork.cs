@@ -20,6 +20,7 @@ public interface IUnitOfWork : IDisposable
     IStockTransferRepository Transfers { get; }
     IInventoryRepository Inventories { get; }
     IRequisitionRepository Requisitions { get; }
+    IFiscalDocumentRepository FiscalDocuments { get; }
     IAuditLogRepository AuditLogs { get; }
     IAppSettingRepository Settings { get; }
     IDocumentSequenceRepository Sequences { get; }

@@ -25,6 +25,12 @@ public static class SettingKeys
     public const string PgRestorePath = "backup.pg_restore_path";
     public const string BackupLastAutoAt = "backup.last_auto_at";
     public const string SessionTimeoutMinutes = "security.session_timeout_minutes";
+    public const string FiscalCnpj = "fiscal.cnpj";
+    public const string FiscalUf = "fiscal.uf";
+    public const string FiscalProduction = "fiscal.production";
+    public const string FiscalUltNsu = "fiscal.ult_nsu";
+    public const string FiscalCertificatePfx = "fiscal.cert_pfx";
+    public const string FiscalCertificatePassword = "fiscal.cert_password";
     public const string LabelPrinter = "printers.label";
     public const string ReportPrinter = "printers.report";
     public const string ReportsDirectory = "directories.reports";

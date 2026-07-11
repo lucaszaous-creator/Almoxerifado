@@ -257,6 +257,7 @@ public partial class MainViewModel : ViewModelBase
             new("Requisições", "ClipboardTextOutline", PermissionCodes.RequisitionsView, typeof(RequisitionsViewModel)),
             new("Transferências", "SwapHorizontal", PermissionCodes.StockTransfer, typeof(TransfersViewModel)),
             new("Inventário", "ClipboardListOutline", PermissionCodes.InventoryView, typeof(InventoryViewModel)),
+            new("Notas Fiscais", "FileDocumentOutline", PermissionCodes.FiscalView, typeof(FiscalViewModel)),
             new("Relatórios", "ChartBox", PermissionCodes.ReportsView, typeof(ReportsViewModel)),
             new("Setores e Equipe", "AccountTie", PermissionCodes.OrganizationView, typeof(OrganizationViewModel)),
             new("Usuários", "AccountGroup", PermissionCodes.UsersView, typeof(UsersViewModel)),

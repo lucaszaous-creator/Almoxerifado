@@ -1,5 +1,6 @@
 using ALMOXPRO.Application.Interfaces;
 using ALMOXPRO.Domain.Entities.Catalog;
+using ALMOXPRO.Domain.Entities.Fiscal;
 using ALMOXPRO.Domain.Entities.Configuration;
 using ALMOXPRO.Domain.Entities.Movements;
 using ALMOXPRO.Domain.Entities.Organization;
@@ -433,5 +434,29 @@ public class RequisitionRepository : Repository<Requisition>, IRequisitionReposi
         if (excludeRequisitionId.HasValue)
             query = query.Where(i => i.RequisitionId != excludeRequisitionId.Value);
         return await query.SumAsync(i => (decimal?)(i.QuantityRequested - i.QuantityFulfilled), ct) ?? 0;
+    }
+}
+
+public class FiscalDocumentRepository : Repository<FiscalDocument>, IFiscalDocumentRepository
+{
+    public FiscalDocumentRepository(AlmoxProDbContext context) : base(context) { }
+
+    public Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default) =>
+        Set.FirstOrDefaultAsync(d => d.AccessKey == accessKey, ct);
+
+    public Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query,
+        Domain.Common.FiscalDocumentStatus? status = null, CancellationToken ct = default)
+    {
+        var q = Set.AsNoTracking().AsQueryable();
+        if (status.HasValue)
+            q = q.Where(d => d.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = $"%{query.Search.Trim()}%";
+            q = q.Where(d => EF.Functions.ILike(d.EmitterName, s)
+                          || d.AccessKey.Contains(query.Search.Trim())
+                          || d.EmitterCnpj.Contains(query.Search.Trim()));
+        }
+        return q.OrderByDescending(d => d.IssuedAt).ToPagedResultAsync(query, ct);
     }
 }
