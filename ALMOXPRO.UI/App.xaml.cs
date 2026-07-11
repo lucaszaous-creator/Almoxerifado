@@ -146,7 +146,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private static string? ReadConnectionString()
+    internal static string? ReadConnectionString()
     {
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)

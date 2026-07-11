@@ -56,7 +56,12 @@
                              materialDesign:HintAssist.Hint="Senha"
                              Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
                              PasswordChanged="OnPasswordChanged"
-                             Margin="0,0,0,8" />
+                             Margin="0,0,0,12" />
+                <CheckBox IsChecked="{Binding UseSsl}" Margin="0,0,0,8"
+                          ToolTip="Marque para bancos hospedados na nuvem, que exigem conexão criptografada.">
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Conexão segura (SSL) — banco em nuvem (Neon, Supabase, RDS...)" />
+                </CheckBox>
 
                 <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" MinHeight="36" Margin="0,4" />
 

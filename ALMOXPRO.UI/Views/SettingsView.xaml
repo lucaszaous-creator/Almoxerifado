@@ -116,6 +116,23 @@
                 </StackPanel>
             </materialDesign:Card>
 
+            <!-- Banco de dados -->
+            <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20"
+                                 Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="Database" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Banco de dados" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="Troque o servidor PostgreSQL (local, rede ou nuvem como Neon/Supabase). A alteração vale após reabrir o sistema."
+                               TextWrapping="Wrap" Margin="0,0,0,12"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                    <Button Content="TROCAR CONEXÃO DO BANCO" Command="{Binding ChangeDatabaseConnectionCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </materialDesign:Card>
+
             <!-- Salvar -->
             <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20"
                                  Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
