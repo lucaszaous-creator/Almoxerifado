@@ -1,5 +1,6 @@
 using ALMOXPRO.Domain.Entities.Catalog;
 using ALMOXPRO.Domain.Entities.Configuration;
+using ALMOXPRO.Domain.Entities.Fiscal;
 using ALMOXPRO.Domain.Entities.Movements;
 using ALMOXPRO.Domain.Entities.Organization;
 using ALMOXPRO.Domain.Entities.Security;
@@ -284,6 +285,7 @@ public class MaterialExitConfiguration : IEntityTypeConfiguration<MaterialExit>
         builder.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(e => e.Sector).WithMany().HasForeignKey(e => e.SectorId).OnDelete(DeleteBehavior.Restrict);
         builder.Ignore(e => e.TotalValue);
+        builder.Ignore(e => e.IsReversed);
     }
 }
 
@@ -423,6 +425,7 @@ public class RequisitionConfiguration : IEntityTypeConfiguration<Requisition>
         builder.HasOne(r => r.Sector).WithMany().HasForeignKey(r => r.SectorId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.Employee).WithMany().HasForeignKey(r => r.EmployeeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.MaterialExit).WithMany().HasForeignKey(r => r.MaterialExitId).OnDelete(DeleteBehavior.Restrict);
+        builder.Ignore(r => r.IsOpen);
     }
 }
 
@@ -436,5 +439,23 @@ public class RequisitionItemConfiguration : IEntityTypeConfiguration<Requisition
         builder.Property(i => i.Notes).HasMaxLength(500);
         builder.HasOne(i => i.Requisition).WithMany(r => r.Items).HasForeignKey(i => i.RequisitionId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(i => i.Product).WithMany().HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class FiscalDocumentConfiguration : IEntityTypeConfiguration<FiscalDocument>
+{
+    public void Configure(EntityTypeBuilder<FiscalDocument> builder)
+    {
+        builder.ToTable("fiscal_documents");
+        builder.Property(d => d.AccessKey).HasMaxLength(44).IsRequired();
+        builder.Property(d => d.Nsu).HasMaxLength(15).IsRequired();
+        builder.Property(d => d.EmitterCnpj).HasMaxLength(14).IsRequired();
+        builder.Property(d => d.EmitterName).HasMaxLength(200).IsRequired();
+        builder.Property(d => d.TotalValue).HasPrecision(18, 2);
+        builder.Property(d => d.ManifestJustification).HasMaxLength(500);
+        builder.Property(d => d.Xml).HasColumnType("text");
+        builder.HasIndex(d => d.AccessKey).IsUnique();
+        builder.HasIndex(d => d.Status);
+        builder.HasIndex(d => d.IssuedAt);
     }
 }

@@ -38,7 +38,8 @@
                 </Button>
             </StackPanel>
 
-            <DataGrid ItemsSource="{Binding Items}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Items}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Número" Binding="{Binding Number}" Width="110" />
                     <DataGridTextColumn Header="Tipo" Binding="{Binding Type}" Width="110" />
@@ -49,7 +50,11 @@
                     <DataGridTextColumn Header="Valor Total" Binding="{Binding TotalValue, StringFormat=C2}" Width="110" />
                     <DataGridTextColumn Header="Itens" Binding="{Binding ItemCount}" Width="60" />
                 </DataGrid.Columns>
-            </DataGrid>
+                </DataGrid>
+                <TextBlock Text="Nenhuma entrada registrada no período."
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
+                           Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVis}}" />
+            </Grid>
         </DockPanel>
 
         <Border HorizontalAlignment="Right" Width="640"

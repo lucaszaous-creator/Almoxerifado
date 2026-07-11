@@ -18,6 +18,7 @@
             <converters:InverseBoolConverter x:Key="InverseBool" />
             <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
             <converters:NotNullToVisibilityConverter x:Key="NotNullToVis" />
+            <converters:ZeroToVisibleConverter x:Key="ZeroToVis" />
 
             <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
                 <views:DashboardView />
@@ -57,6 +58,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:RolesViewModel}">
                 <views:RolesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:FiscalViewModel}">
+                <views:FiscalView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
                 <views:ReportsView />

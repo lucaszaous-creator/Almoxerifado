@@ -337,11 +337,12 @@ public class RequisitionDomainTests
     }
 
     [Fact]
-    public void MarkFulfilled_RequisicaoPendente_AtualizaStatusELastro()
+    public void RegisterFulfillment_EntregaTotal_MarcaAtendida()
     {
         var requisition = BuildRequisition();
+        requisition.Items.First().QuantityFulfilled = 2;
 
-        requisition.MarkFulfilled(userId: 7, materialExitId: 99);
+        requisition.RegisterFulfillment(userId: 7, materialExitId: 99);
 
         Assert.Equal(RequisitionStatus.Atendida, requisition.Status);
         Assert.Equal(7, requisition.FulfilledByUserId);
@@ -350,19 +351,48 @@ public class RequisitionDomainTests
     }
 
     [Fact]
-    public void MarkFulfilled_RequisicaoJaAtendida_LancaExcecao()
+    public void RegisterFulfillment_EntregaParcial_MarcaParcialEPermiteNovaEntrega()
     {
         var requisition = BuildRequisition();
-        requisition.MarkFulfilled(1, 1);
+        requisition.Items.First().QuantityFulfilled = 1; // entregou 1 de 2
 
-        Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(() => requisition.MarkFulfilled(1, 2));
+        requisition.RegisterFulfillment(1, 10);
+        Assert.Equal(RequisitionStatus.AtendidaParcial, requisition.Status);
+
+        requisition.Items.First().QuantityFulfilled = 2; // completa a entrega
+        requisition.RegisterFulfillment(1, 11);
+        Assert.Equal(RequisitionStatus.Atendida, requisition.Status);
+        Assert.Equal(11, requisition.MaterialExitId);
+    }
+
+    [Fact]
+    public void RegisterFulfillment_RequisicaoJaAtendida_LancaExcecao()
+    {
+        var requisition = BuildRequisition();
+        requisition.Items.First().QuantityFulfilled = 2;
+        requisition.RegisterFulfillment(1, 1);
+
+        Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(() => requisition.RegisterFulfillment(1, 2));
+    }
+
+    [Fact]
+    public void Cancel_RequisicaoParcial_EhPermitido_CancelaSaldoRestante()
+    {
+        var requisition = BuildRequisition();
+        requisition.Items.First().QuantityFulfilled = 1;
+        requisition.RegisterFulfillment(1, 1);
+
+        requisition.Cancel();
+
+        Assert.Equal(RequisitionStatus.Cancelada, requisition.Status);
     }
 
     [Fact]
     public void Cancel_RequisicaoAtendida_LancaExcecao()
     {
         var requisition = BuildRequisition();
-        requisition.MarkFulfilled(1, 1);
+        requisition.Items.First().QuantityFulfilled = 2;
+        requisition.RegisterFulfillment(1, 1);
 
         Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(requisition.Cancel);
     }

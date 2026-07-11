@@ -18,6 +18,8 @@ public class RequisitionDocumentGenerator : IRequisitionDocumentGenerator
 
     public byte[] GeneratePdf(RequisitionDocument document)
     {
+        var logo = ReportExporter.LoadLogo(document.LogoPath);
+
         return Document.Create(container =>
         {
             container.Page(page =>
@@ -30,7 +32,9 @@ public class RequisitionDocumentGenerator : IRequisitionDocumentGenerator
                 {
                     header.Item().Row(row =>
                     {
-                        row.RelativeItem().Column(col =>
+                        if (logo is not null)
+                            row.ConstantItem(70).MaxHeight(46).AlignMiddle().Image(logo).FitArea();
+                        row.RelativeItem().PaddingLeft(logo is null ? 0 : 10).Column(col =>
                         {
                             col.Item().Text(document.CompanyName).FontSize(14).Bold();
                             col.Item().Text("Requisição de Materiais").FontSize(11)

@@ -15,8 +15,13 @@ public interface IRequisitionService
     Task<Result<int>> CreateAsync(RequisitionCreateDto dto, CancellationToken ct = default);
     Task<List<RequisitionItemViewDto>> GetItemsAsync(int id, CancellationToken ct = default);
 
-    /// <summary>Atende a requisição gerando a saída de estoque vinculada (lastro).</summary>
-    Task<Result<int>> FulfillAsync(int id, CancellationToken ct = default);
+    /// <summary>
+    /// Atende a requisição gerando a saída de estoque vinculada (lastro).
+    /// Quando <paramref name="quantities"/> é informado (id do item → quantidade a entregar),
+    /// permite entrega parcial: o saldo restante continua pendente.
+    /// </summary>
+    Task<Result<int>> FulfillAsync(int id, IReadOnlyDictionary<int, decimal>? quantities = null,
+        CancellationToken ct = default);
 
     Task<Result> CancelAsync(int id, CancellationToken ct = default);
     Task<RequisitionDocument?> GetPrintDocumentAsync(int id, CancellationToken ct = default);
@@ -71,6 +76,21 @@ public class RequisitionService : IRequisitionService
         if (!validation.IsValid)
             return Result.Failure<int>(validation.Errors.Select(e => e.ErrorMessage));
 
+        // Reserva: o disponível desconta o que outras requisições abertas já prometeram.
+        foreach (var item in dto.Items)
+        {
+            var physical = await _uow.Stock.GetTotalQuantityAsync(item.ProductId, dto.WarehouseId, ct);
+            var reserved = await _uow.Requisitions.GetReservedQuantityAsync(item.ProductId, dto.WarehouseId, null, ct);
+            var free = physical - reserved;
+            if (item.Quantity > free)
+            {
+                var product = await _uow.Products.GetByIdAsync(item.ProductId, ct);
+                return Result.Failure<int>(
+                    $"Estoque livre insuficiente para '{product?.Name}'. " +
+                    $"Físico: {physical:N2}, reservado por outras requisições: {reserved:N2}, livre: {Math.Max(free, 0):N2}.");
+            }
+        }
+
         var requisition = new Requisition
         {
             Number = await _uow.Sequences.NextNumberAsync("requisition", "REQ", ct),
@@ -108,13 +128,35 @@ public class RequisitionService : IRequisitionService
             i.QuantityRequested, i.QuantityFulfilled)).ToList();
     }
 
-    public async Task<Result<int>> FulfillAsync(int id, CancellationToken ct = default)
+    public async Task<Result<int>> FulfillAsync(int id, IReadOnlyDictionary<int, decimal>? quantities = null,
+        CancellationToken ct = default)
     {
         var requisition = await _uow.Requisitions.GetWithItemsAsync(id, ct);
         if (requisition is null)
             return Result.Failure<int>("Requisição não encontrada.");
-        if (requisition.Status != RequisitionStatus.Pendente)
-            return Result.Failure<int>("Apenas requisições pendentes podem ser atendidas.");
+        if (!requisition.IsOpen)
+            return Result.Failure<int>("Apenas requisições pendentes ou parciais podem ser atendidas.");
+
+        // Monta as entregas: por padrão, tudo o que ainda falta de cada item.
+        var deliveries = new List<(RequisitionItem Item, decimal Quantity)>();
+        foreach (var item in requisition.Items)
+        {
+            var remaining = item.QuantityRequested - item.QuantityFulfilled;
+            var deliver = quantities is null
+                ? remaining
+                : quantities.GetValueOrDefault(item.Id, 0);
+
+            if (deliver < 0)
+                return Result.Failure<int>("A quantidade a entregar não pode ser negativa.");
+            if (deliver > remaining)
+                return Result.Failure<int>(
+                    $"'{item.Product.Name}': a entrega ({deliver:N2}) excede o saldo pendente ({remaining:N2}).");
+            if (deliver > 0)
+                deliveries.Add((item, deliver));
+        }
+
+        if (deliveries.Count == 0)
+            return Result.Failure<int>("Informe ao menos um item com quantidade a entregar.");
 
         var exitDto = new ExitCreateDto
         {
@@ -125,10 +167,10 @@ public class RequisitionService : IRequisitionService
             Reason = $"Requisição {requisition.Number}",
             ResponsibleName = requisition.Employee?.Name ?? requisition.RequesterName,
             Notes = requisition.Notes,
-            Items = requisition.Items.Select(i => new ExitItemDto
+            Items = deliveries.Select(d => new ExitItemDto
             {
-                ProductId = i.ProductId,
-                Quantity = i.QuantityRequested
+                ProductId = d.Item.ProductId,
+                Quantity = d.Quantity
             }).ToList()
         };
 
@@ -141,9 +183,9 @@ public class RequisitionService : IRequisitionService
                 return;
 
             exitId = exitResult.Value;
-            requisition.MarkFulfilled(_session.UserId ?? 0, exitId);
-            foreach (var item in requisition.Items)
-                item.QuantityFulfilled = item.QuantityRequested;
+            foreach (var (item, quantity) in deliveries)
+                item.QuantityFulfilled += quantity;
+            requisition.RegisterFulfillment(_session.UserId ?? 0, exitId);
             await _uow.SaveChangesAsync(ct);
         }, ct);
 
@@ -155,11 +197,11 @@ public class RequisitionService : IRequisitionService
 
     public async Task<Result> CancelAsync(int id, CancellationToken ct = default)
     {
-        var requisition = await _uow.Requisitions.GetByIdAsync(id, ct);
+        var requisition = await _uow.Requisitions.GetWithItemsAsync(id, ct);
         if (requisition is null)
             return Result.Failure("Requisição não encontrada.");
-        if (requisition.Status != RequisitionStatus.Pendente)
-            return Result.Failure("Apenas requisições pendentes podem ser canceladas.");
+        if (!requisition.IsOpen)
+            return Result.Failure("Apenas requisições pendentes ou parciais podem ser canceladas.");
 
         requisition.Cancel();
         await _uow.SaveChangesAsync(ct);
@@ -173,9 +215,11 @@ public class RequisitionService : IRequisitionService
             return null;
 
         var company = await _uow.Settings.GetByKeyAsync(SettingKeys.CompanyName, ct);
+        var logo = await _uow.Settings.GetByKeyAsync(SettingKeys.CompanyLogoPath, ct);
         var creator = await _uow.Users.GetByIdAsync(requisition.CreatedByUserId, ct);
 
         return new RequisitionDocument(
+            logo?.Value,
             string.IsNullOrWhiteSpace(company?.Value) ? "ALMOX PRO" : company!.Value!,
             requisition.Number,
             requisition.Status.ToString(),

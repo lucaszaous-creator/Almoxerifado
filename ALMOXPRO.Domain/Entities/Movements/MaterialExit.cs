@@ -39,6 +39,10 @@ public class MaterialExit : BaseEntity
     public DateTime ExitDate { get; set; } = DateTime.UtcNow;
     public string? Notes { get; set; }
 
+    /// <summary>Entrada de devolução que estornou esta saída, quando houver.</summary>
+    public int? ReversedByEntryId { get; set; }
+    public bool IsReversed => ReversedByEntryId.HasValue;
+
     public ICollection<MaterialExitItem> Items { get; set; } = new List<MaterialExitItem>();
 
     public decimal TotalValue => Items.Sum(i => Math.Round(i.Quantity * i.UnitCost, 2));

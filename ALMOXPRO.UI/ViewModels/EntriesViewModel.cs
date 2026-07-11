@@ -223,7 +223,7 @@ public partial class EntriesViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Entrada registrada com sucesso. Estoque atualizado.");
+        Dialog.Notify("Entrada registrada. Estoque atualizado.");
         IsEditorOpen = false;
         await LoadIntoAsync(services);
     });

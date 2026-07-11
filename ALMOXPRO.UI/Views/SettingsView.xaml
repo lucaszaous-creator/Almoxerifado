@@ -24,6 +24,9 @@
                              IsEnabled="{Binding CanManage}" />
                     <TextBox materialDesign:HintAssist.Hint="Caminho do logo" Text="{Binding LogoPath}"
                              IsEnabled="{Binding CanManage}" />
+                    <TextBox materialDesign:HintAssist.Hint="Bloqueio por inatividade (minutos, 0 desativa)"
+                             Text="{Binding SessionTimeoutMinutes}" IsEnabled="{Binding CanManage}"
+                             ToolTip="Encerra a sessão automaticamente após esse tempo sem uso. Vale a partir do próximo login." />
                 </StackPanel>
             </materialDesign:Card>
 
@@ -49,6 +52,9 @@
                                  Text="{Binding PgRestorePath}" IsEnabled="{Binding CanManage}" />
                     </Grid>
                     <CheckBox Content="Compactar backup (zip)" IsChecked="{Binding BackupCompress}"
+                              IsEnabled="{Binding CanManage}" Margin="0,0,0,8" />
+                    <CheckBox Content="Backup automático diário (executa em segundo plano durante o uso)"
+                              IsChecked="{Binding BackupAutoEnabled}"
                               IsEnabled="{Binding CanManage}" Margin="0,0,0,12" />
                     <StackPanel Orientation="Horizontal">
                         <Button Command="{Binding BackupNowCommand}" Margin="0,0,8,0"
@@ -113,6 +119,56 @@
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Fiscal (NF-e) -->
+            <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20"
+                                 Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="FileCertificateOutline" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Fiscal (NF-e / SEFAZ)" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding FiscalCertStatus}" TextWrapping="Wrap" Margin="0,0,0,12"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="CNPJ da empresa *"
+                                 Text="{Binding FiscalCnpj}" />
+                        <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="UF *"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding Ufs}" SelectedItem="{Binding FiscalUf}"
+                                  Margin="0,0,0,12" />
+                    </Grid>
+                    <CheckBox Content="Ambiente de produção (desmarque para testes em homologação)"
+                              IsChecked="{Binding FiscalProduction}" Margin="0,0,0,12" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding SelectFiscalCertificateCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Upload" VerticalAlignment="Center" />
+                                <TextBlock Text="CERTIFICADO A1" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Grid.Column="2" Text="{Binding FiscalCertFileName}" VerticalAlignment="Center"
+                                   Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                    <TextBox materialDesign:HintAssist.Hint="Senha do certificado"
+                             Text="{Binding FiscalCertPassword, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,12,0,12" />
+                    <Button Content="SALVAR CONFIGURAÇÃO FISCAL" Command="{Binding SaveFiscalConfigCommand}"
+                            HorizontalAlignment="Left" />
                 </StackPanel>
             </materialDesign:Card>
 

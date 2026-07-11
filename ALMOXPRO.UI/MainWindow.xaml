@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:ALMOXPRO.UI.ViewModels"
+        xmlns:services="clr-namespace:ALMOXPRO.UI.Services"
         Title="ALMOX PRO - Gestão de Almoxarifado"
         Height="800" Width="1360"
         WindowStartupLocation="CenterScreen"
@@ -74,6 +75,17 @@
                                VerticalAlignment="Center" Margin="12,0,0,0"
                                FontSize="14" Opacity="0.8" />
 
+                    <!-- Busca global de produtos -->
+                    <TextBox DockPanel.Dock="Left" Width="260" Margin="24,0,0,0" VerticalAlignment="Center"
+                             materialDesign:HintAssist.Hint="Buscar produto (nome ou código)..."
+                             materialDesign:TextFieldAssist.HasClearButton="True"
+                             Style="{StaticResource MaterialDesignTextBox}"
+                             Text="{Binding GlobalSearch, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding GlobalSearchGoCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+
                     <materialDesign:PopupBox DockPanel.Dock="Right" PlacementMode="BottomAndAlignRightEdges"
                                              Margin="4,0,8,0" VerticalAlignment="Center">
                         <materialDesign:PopupBox.ToggleContent>
@@ -128,6 +140,8 @@
                              HorizontalAlignment="Center" VerticalAlignment="Center"
                              Visibility="{Binding CurrentViewModel.IsBusy,
                                           Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}" />
+                <materialDesign:Snackbar x:Name="MainSnackbar" VerticalAlignment="Bottom"
+                                         MessageQueue="{x:Static services:DialogService.MessageQueue}" />
             </Grid>
         </DockPanel>
     </Grid>

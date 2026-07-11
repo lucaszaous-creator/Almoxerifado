@@ -34,6 +34,10 @@ public class UserUpsertDto
     public string? JobTitle { get; set; }
     public UserStatus Status { get; set; } = UserStatus.Ativo;
     public byte[]? Photo { get; set; }
+    /// <summary>Login permitido apenas de segunda a sexta.</summary>
+    public bool WeekdaysOnly { get; set; }
+    public TimeOnly? AccessStartTime { get; set; }
+    public TimeOnly? AccessEndTime { get; set; }
     public List<int> RoleIds { get; set; } = [];
     /// <summary>Permissões individuais: código → concedida/revogada.</summary>
     public Dictionary<string, bool> PermissionOverrides { get; set; } = [];

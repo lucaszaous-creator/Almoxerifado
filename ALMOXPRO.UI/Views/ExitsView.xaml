@@ -24,6 +24,15 @@
                         <TextBlock Text="NOVA SAÍDA" Margin="6,0,0,0" />
                     </StackPanel>
                 </Button>
+                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding ReverseCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                        ToolTip="Estornar: devolve os itens ao estoque com entrada de devolução vinculada">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Undo" VerticalAlignment="Center" />
+                        <TextBlock Text="ESTORNAR" Margin="6,0,0,0" />
+                    </StackPanel>
+                </Button>
             </DockPanel>
 
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
@@ -38,9 +47,12 @@
                 </Button>
             </StackPanel>
 
-            <DataGrid ItemsSource="{Binding Items}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+            <Grid>
+                <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                          AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Número" Binding="{Binding Number}" Width="110" />
+                    <DataGridCheckBoxColumn Header="Estornada" Binding="{Binding Reversed}" Width="80" />
                     <DataGridTextColumn Header="Tipo" Binding="{Binding Type}" Width="110" />
                     <DataGridTextColumn Header="Almoxarifado" Binding="{Binding WarehouseName}" Width="*" />
                     <DataGridTextColumn Header="Centro de Custo" Binding="{Binding CostCenterName}" Width="140" />
@@ -50,7 +62,11 @@
                     <DataGridTextColumn Header="Valor" Binding="{Binding TotalValue, StringFormat=C2}" Width="100" />
                     <DataGridTextColumn Header="Itens" Binding="{Binding ItemCount}" Width="60" />
                 </DataGrid.Columns>
-            </DataGrid>
+                </DataGrid>
+                <TextBlock Text="Nenhuma saída registrada no período."
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
+                           Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVis}}" />
+            </Grid>
         </DockPanel>
 
         <Border HorizontalAlignment="Right" Width="640"

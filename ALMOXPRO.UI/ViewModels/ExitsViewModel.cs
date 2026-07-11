@@ -36,6 +36,9 @@ public partial class ExitsViewModel : ViewModelBase
     private string _search = string.Empty;
 
     [ObservableProperty]
+    private ExitListDto? _selected;
+
+    [ObservableProperty]
     private bool _isEditorOpen;
 
     [ObservableProperty]
@@ -213,13 +216,40 @@ public partial class ExitsViewModel : ViewModelBase
             return;
         }
 
-        Dialog.ShowInfo("Saída registrada com sucesso. Estoque atualizado.");
+        Dialog.Notify("Saída registrada. Estoque atualizado.");
         IsEditorOpen = false;
         await LoadIntoAsync(services);
     });
 
     [RelayCommand]
     private void CancelEdit() => IsEditorOpen = false;
+
+    [RelayCommand]
+    private Task ReverseAsync() => RunAsync(async services =>
+    {
+        if (Selected is null)
+            return;
+        if (Selected.Reversed)
+        {
+            Dialog.ShowError($"A saída {Selected.Number} já foi estornada.");
+            return;
+        }
+        if (!Dialog.Confirm(
+                $"Estornar a saída {Selected.Number}?\nOs itens retornam ao estoque por uma entrada de devolução vinculada.",
+                "Estornar saída"))
+            return;
+
+        var exits = services.GetRequiredService<IMaterialExitService>();
+        var result = await exits.ReverseAsync(Selected.Id);
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        Dialog.Notify("Saída estornada. Os itens retornaram ao estoque.");
+        await LoadIntoAsync(services);
+    });
 
     private void ClearItemInput()
     {

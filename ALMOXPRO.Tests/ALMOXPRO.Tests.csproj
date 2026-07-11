@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
@@ -17,6 +18,7 @@
     <ProjectReference Include="..\ALMOXPRO.Application\ALMOXPRO.Application.csproj" />
     <ProjectReference Include="..\ALMOXPRO.Domain\ALMOXPRO.Domain.csproj" />
     <ProjectReference Include="..\ALMOXPRO.Infrastructure\ALMOXPRO.Infrastructure.csproj" />
+    <ProjectReference Include="..\ALMOXPRO.Persistence\ALMOXPRO.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

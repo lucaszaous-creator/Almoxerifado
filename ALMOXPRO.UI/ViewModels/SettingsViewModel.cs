@@ -34,10 +34,44 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _backupCompress = true;
 
     [ObservableProperty]
+    private bool _backupAutoEnabled;
+
+    // Sessão
+    [ObservableProperty]
+    private string _sessionTimeoutMinutes = "15";
+
+    [ObservableProperty]
     private string _pgDumpPath = string.Empty;
 
     [ObservableProperty]
     private string _pgRestorePath = string.Empty;
+
+    // Fiscal (NF-e)
+    [ObservableProperty]
+    private string _fiscalCnpj = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalUf = string.Empty;
+
+    [ObservableProperty]
+    private bool _fiscalProduction = true;
+
+    [ObservableProperty]
+    private string _fiscalCertPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalCertFileName = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalCertStatus = string.Empty;
+
+    private byte[]? _fiscalCertBytes;
+
+    public string[] Ufs { get; } =
+    [
+        "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
+        "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"
+    ];
 
     // Almoxarifados
     [ObservableProperty]
@@ -73,10 +107,51 @@ public partial class SettingsViewModel : ViewModelBase
         LogoPath = all.GetValueOrDefault(SettingKeys.CompanyLogoPath) ?? string.Empty;
         BackupDirectory = all.GetValueOrDefault(SettingKeys.BackupDirectory) ?? string.Empty;
         BackupCompress = all.GetValueOrDefault(SettingKeys.BackupCompress) != "false";
+        BackupAutoEnabled = all.GetValueOrDefault(SettingKeys.BackupAutoEnabled) == "true";
+        SessionTimeoutMinutes = all.GetValueOrDefault(SettingKeys.SessionTimeoutMinutes) ?? "15";
         PgDumpPath = all.GetValueOrDefault(SettingKeys.PgDumpPath) ?? string.Empty;
         PgRestorePath = all.GetValueOrDefault(SettingKeys.PgRestorePath) ?? string.Empty;
 
+        FiscalCnpj = all.GetValueOrDefault(SettingKeys.FiscalCnpj) ?? string.Empty;
+        FiscalUf = all.GetValueOrDefault(SettingKeys.FiscalUf) ?? string.Empty;
+        FiscalProduction = all.GetValueOrDefault(SettingKeys.FiscalProduction) != "false";
+
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var certificate = await fiscal.GetCertificateInfoAsync();
+        FiscalCertStatus = certificate is null
+            ? "Nenhum certificado configurado."
+            : $"Certificado: {certificate.Subject}\nVálido até {certificate.NotAfter:dd/MM/yyyy}";
+
         await LoadWarehousesAsync(services);
+    });
+
+    [RelayCommand]
+    private void SelectFiscalCertificate()
+    {
+        var path = Dialog.OpenFile("Certificado A1 (*.pfx;*.p12)|*.pfx;*.p12");
+        if (path is null)
+            return;
+        _fiscalCertBytes = System.IO.File.ReadAllBytes(path);
+        FiscalCertFileName = System.IO.Path.GetFileName(path);
+    }
+
+    [RelayCommand]
+    private Task SaveFiscalConfigAsync() => RunAsync(async services =>
+    {
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var result = await fiscal.SaveConfigurationAsync(
+            _fiscalCertBytes, FiscalCertPassword, FiscalCnpj, FiscalUf, FiscalProduction);
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        _fiscalCertBytes = null;
+        FiscalCertPassword = string.Empty;
+        FiscalCertFileName = string.Empty;
+        FiscalCertStatus = $"Certificado: {result.Value.Subject}\nVálido até {result.Value.NotAfter:dd/MM/yyyy}";
+        Dialog.Notify("Configuração fiscal salva. Use SINCRONIZAR SEFAZ na tela Notas Fiscais.");
     });
 
     [RelayCommand]
@@ -88,9 +163,12 @@ public partial class SettingsViewModel : ViewModelBase
         await settings.SetAsync(SettingKeys.CompanyLogoPath, LogoPath);
         await settings.SetAsync(SettingKeys.BackupDirectory, BackupDirectory);
         await settings.SetAsync(SettingKeys.BackupCompress, BackupCompress ? "true" : "false");
+        await settings.SetAsync(SettingKeys.BackupAutoEnabled, BackupAutoEnabled ? "true" : "false");
+        await settings.SetAsync(SettingKeys.SessionTimeoutMinutes,
+            int.TryParse(SessionTimeoutMinutes, out var minutes) && minutes >= 0 ? minutes.ToString() : "15");
         await settings.SetAsync(SettingKeys.PgDumpPath, PgDumpPath);
         await settings.SetAsync(SettingKeys.PgRestorePath, PgRestorePath);
-        Dialog.ShowInfo("Configurações salvas.");
+        Dialog.Notify("Configurações salvas.");
     });
 
     [RelayCommand]

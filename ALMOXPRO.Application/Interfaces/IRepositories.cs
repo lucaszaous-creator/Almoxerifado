@@ -1,5 +1,6 @@
 using ALMOXPRO.Domain.Common;
 using ALMOXPRO.Domain.Entities.Catalog;
+using ALMOXPRO.Domain.Entities.Fiscal;
 using ALMOXPRO.Domain.Entities.Configuration;
 using ALMOXPRO.Domain.Entities.Movements;
 using ALMOXPRO.Domain.Entities.Organization;
@@ -63,6 +64,9 @@ public interface ILotRepository : IRepository<Lot>
 public interface IStockRepository
 {
     Task<StockItem?> GetItemAsync(int productId, int warehouseId, int? lotId, CancellationToken ct = default);
+
+    /// <summary>Saldos rastreados (com lote carregado) de um produto no almoxarifado, para baixa FEFO.</summary>
+    Task<List<StockItem>> GetItemsWithLotsAsync(int productId, int warehouseId, CancellationToken ct = default);
     Task<List<StockItem>> GetByWarehouseAsync(int warehouseId, CancellationToken ct = default);
     Task<List<StockItem>> GetByProductAsync(int productId, CancellationToken ct = default);
     Task<decimal> GetTotalQuantityAsync(int productId, int? warehouseId = null, CancellationToken ct = default);
@@ -102,6 +106,10 @@ public interface IRequisitionRepository : IRepository<Requisition>
     Task<Requisition?> GetWithItemsAsync(int id, CancellationToken ct = default);
     Task<PagedResult<Requisition>> SearchAsync(PagedQuery query, RequisitionStatus? status = null,
         int? sectorId = null, CancellationToken ct = default);
+
+    /// <summary>Quantidade reservada por requisições abertas (pendentes/parciais) do produto no almoxarifado.</summary>
+    Task<decimal> GetReservedQuantityAsync(int productId, int warehouseId, int? excludeRequisitionId = null,
+        CancellationToken ct = default);
 }
 
 public interface IAuditLogRepository
@@ -120,6 +128,13 @@ public interface IDocumentSequenceRepository : IRepository<DocumentSequence>
 {
     /// <summary>Obtém e incrementa a sequência com bloqueio, garantindo numeração única.</summary>
     Task<string> NextNumberAsync(string key, string prefix, CancellationToken ct = default);
+}
+
+public interface IFiscalDocumentRepository : IRepository<FiscalDocument>
+{
+    Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default);
+    Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query, FiscalDocumentStatus? status = null,
+        CancellationToken ct = default);
 }
 
 public interface ICostCenterRepository : IRepository<CostCenter>;

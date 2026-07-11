@@ -55,6 +55,13 @@ public partial class ReportsViewModel : ViewModelBase
         SelectedReport = Reports[0];
     }
 
+    /// <summary>Abre um relatório específico já gerado (cartões do dashboard).</summary>
+    public async Task OpenReportAsync(ReportKind kind)
+    {
+        SelectedReport = Reports.FirstOrDefault(r => r.Kind == kind) ?? Reports[0];
+        await GenerateAsync();
+    }
+
     [RelayCommand]
     private Task GenerateAsync() => RunAsync(async services =>
     {
@@ -74,8 +81,10 @@ public partial class ReportsViewModel : ViewModelBase
         PreviewInfo = $"{_lastTable.Title} — {_lastTable.Rows.Count} registro(s)";
     });
 
+    private string? _logoPath;
+
     [RelayCommand]
-    private Task ExportPdfAsync() => ExportAsync("pdf", (exporter, table) => exporter.ToPdf(table));
+    private Task ExportPdfAsync() => ExportAsync("pdf", (exporter, table) => exporter.ToPdf(table, _logoPath));
 
     [RelayCommand]
     private Task ExportExcelAsync() => ExportAsync("xlsx", (exporter, table) => exporter.ToExcel(table));
@@ -103,6 +112,9 @@ public partial class ReportsViewModel : ViewModelBase
             var path = Dialog.SaveFile(suggested, filter);
             if (path is null)
                 return;
+
+            var settings = services.GetRequiredService<ISettingsService>();
+            _logoPath = await settings.GetAsync(ALMOXPRO.Domain.Entities.Configuration.SettingKeys.CompanyLogoPath);
 
             var exporter = services.GetRequiredService<IReportExporter>();
             var bytes = render(exporter, _lastTable);

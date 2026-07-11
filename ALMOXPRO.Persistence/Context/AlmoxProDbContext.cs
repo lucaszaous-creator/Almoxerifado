@@ -1,5 +1,6 @@
 using ALMOXPRO.Domain.Entities.Catalog;
 using ALMOXPRO.Domain.Entities.Configuration;
+using ALMOXPRO.Domain.Entities.Fiscal;
 using ALMOXPRO.Domain.Entities.Movements;
 using ALMOXPRO.Domain.Entities.Organization;
 using ALMOXPRO.Domain.Entities.Security;
@@ -32,6 +33,7 @@ public class AlmoxProDbContext : DbContext
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<InventoryCount> InventoryCounts => Set<InventoryCount>();
     public DbSet<Requisition> Requisitions => Set<Requisition>();
+    public DbSet<FiscalDocument> FiscalDocuments => Set<FiscalDocument>();
 
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Sector> Sectors => Set<Sector>();
@@ -43,6 +45,13 @@ public class AlmoxProDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AlmoxProDbContext).Assembly);
+
+        // Controle de concorrência otimista nos saldos: com vários usuários
+        // simultâneos, duas baixas do mesmo item não podem se sobrepor.
+        // Usa a coluna de sistema xmin do PostgreSQL (sem alteração de schema).
+        if (Database.IsNpgsql())
+            modelBuilder.Entity<StockItem>().UseXminAsConcurrencyToken();
+
         base.OnModelCreating(modelBuilder);
     }
 }

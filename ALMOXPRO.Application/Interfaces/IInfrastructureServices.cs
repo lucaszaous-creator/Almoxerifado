@@ -43,7 +43,7 @@ public record ReportTable(
 
 public interface IReportExporter
 {
-    byte[] ToPdf(ReportTable table);
+    byte[] ToPdf(ReportTable table, string? logoPath = null);
     byte[] ToExcel(ReportTable table);
     byte[] ToCsv(ReportTable table);
 }
@@ -57,6 +57,7 @@ public interface ILabelGenerator
 
 /// <summary>Dados do documento de requisição para impressão e assinatura.</summary>
 public record RequisitionDocument(
+    string? LogoPath,
     string CompanyName,
     string Number,
     string Status,

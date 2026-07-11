@@ -3,6 +3,7 @@ using ALMOXPRO.Application.Services;
 using ALMOXPRO.Infrastructure.Backup;
 using ALMOXPRO.Infrastructure.Codes;
 using ALMOXPRO.Infrastructure.Email;
+using ALMOXPRO.Infrastructure.Fiscal;
 using ALMOXPRO.Infrastructure.Machine;
 using ALMOXPRO.Infrastructure.Reports;
 using ALMOXPRO.Infrastructure.Security;
@@ -22,6 +23,8 @@ public static class DependencyInjection
         services.AddSingleton<IReportExporter, ReportExporter>();
         services.AddSingleton<ILabelGenerator, LabelGenerator>();
         services.AddSingleton<IRequisitionDocumentGenerator, RequisitionDocumentGenerator>();
+        services.AddSingleton<IFiscalGateway, UnimakeFiscalGateway>();
+        services.AddSingleton<IDanfeGenerator, DanfeGenerator>();
         services.AddSingleton<IEmailService, SmtpEmailService>();
         services.AddScoped<IBackupService>(provider => new PostgresBackupService(
             connectionString,

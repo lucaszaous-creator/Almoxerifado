@@ -49,20 +49,30 @@ public class Requisition : BaseEntity
             throw new DomainException("A requisição deve indicar o setor solicitante.");
     }
 
-    public void MarkFulfilled(int userId, int materialExitId)
+    public bool IsOpen => Status is RequisitionStatus.Pendente or RequisitionStatus.AtendidaParcial;
+
+    /// <summary>
+    /// Registra uma entrega (total ou parcial). O status vira Atendida quando
+    /// todos os itens estão completos; caso contrário, AtendidaParcial.
+    /// </summary>
+    public void RegisterFulfillment(int userId, int materialExitId)
     {
-        if (Status != RequisitionStatus.Pendente)
-            throw new DomainException("Apenas requisições pendentes podem ser atendidas.");
-        Status = RequisitionStatus.Atendida;
+        if (!IsOpen)
+            throw new DomainException("Apenas requisições pendentes ou parciais podem ser atendidas.");
+
         FulfilledByUserId = userId;
         FulfilledAt = DateTime.UtcNow;
         MaterialExitId = materialExitId;
+        Status = Items.All(i => i.QuantityFulfilled >= i.QuantityRequested)
+            ? RequisitionStatus.Atendida
+            : RequisitionStatus.AtendidaParcial;
     }
 
+    /// <summary>Cancela o saldo restante. Entregas já feitas permanecem no histórico.</summary>
     public void Cancel()
     {
-        if (Status != RequisitionStatus.Pendente)
-            throw new DomainException("Apenas requisições pendentes podem ser canceladas.");
+        if (!IsOpen)
+            throw new DomainException("Apenas requisições pendentes ou parciais podem ser canceladas.");
         Status = RequisitionStatus.Cancelada;
     }
 }

@@ -466,6 +466,85 @@ namespace ALMOXPRO.Persistence.Migrations
                     b.ToTable("document_sequences", (string)null);
                 });
 
+            modelBuilder.Entity("ALMOXPRO.Domain.Entities.Fiscal.FiscalDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccessKey")
+                        .IsRequired()
+                        .HasMaxLength(44)
+                        .HasColumnType("character varying(44)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmitterCnpj")
+                        .IsRequired()
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)");
+
+                    b.Property<string>("EmitterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("HasFullXml")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ManifestJustification")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ManifestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ManifestedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nsu")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Xml")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccessKey")
+                        .IsUnique();
+
+                    b.HasIndex("IssuedAt");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("fiscal_documents", (string)null);
+                });
+
             modelBuilder.Entity("ALMOXPRO.Domain.Entities.Movements.InventoryCount", b =>
                 {
                     b.Property<int>("Id")
@@ -740,6 +819,9 @@ namespace ALMOXPRO.Persistence.Migrations
                     b.Property<string>("ResponsibleName")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<int?>("ReversedByEntryId")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("SectorId")
                         .HasColumnType("integer");
@@ -1344,6 +1426,12 @@ namespace ALMOXPRO.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<TimeOnly?>("AccessEndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<TimeOnly?>("AccessStartTime")
+                        .HasColumnType("time without time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1412,6 +1500,9 @@ namespace ALMOXPRO.Persistence.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
+
+                    b.Property<bool>("WeekdaysOnly")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -1531,6 +1622,12 @@ namespace ALMOXPRO.Persistence.Migrations
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
