@@ -7,6 +7,7 @@ public record DashboardDto(
     int ExitsToday,
     int CriticalProducts,
     int ExpiredProducts,
+    int ExpiringSoon,
     int BelowMinimum,
     IReadOnlyList<AbcItemDto> AbcCurve,
     IReadOnlyList<RecentMovementDto> RecentMovements,

@@ -256,3 +256,122 @@ public class MovementValidatorTests
         Assert.True(new TransferCreateValidator().Validate(dto).IsValid);
     }
 }
+
+public class RequisitionValidatorTests
+{
+    private readonly RequisitionCreateValidator _validator = new();
+
+    private static RequisitionCreateDto ValidRequisition() => new()
+    {
+        WarehouseId = 1,
+        SectorId = 2,
+        EmployeeId = 3,
+        Items = [new RequisitionItemCreateDto { ProductId = 1, Quantity = 5 }]
+    };
+
+    [Fact]
+    public void Requisicao_Valida_Passa()
+    {
+        Assert.True(_validator.Validate(ValidRequisition()).IsValid);
+    }
+
+    [Fact]
+    public void Requisicao_SemSetor_Falha()
+    {
+        var dto = ValidRequisition();
+        dto.SectorId = 0;
+
+        Assert.False(_validator.Validate(dto).IsValid);
+    }
+
+    [Fact]
+    public void Requisicao_SemItens_Falha()
+    {
+        var dto = ValidRequisition();
+        dto.Items = [];
+
+        Assert.False(_validator.Validate(dto).IsValid);
+    }
+
+    [Fact]
+    public void Requisicao_SemFuncionarioESemNome_Falha()
+    {
+        var dto = ValidRequisition();
+        dto.EmployeeId = null;
+        dto.RequesterName = null;
+
+        Assert.False(_validator.Validate(dto).IsValid);
+    }
+
+    [Fact]
+    public void Requisicao_SemFuncionario_ComNomeDeQuemRetira_Passa()
+    {
+        var dto = ValidRequisition();
+        dto.EmployeeId = null;
+        dto.RequesterName = "Maria da Cozinha";
+
+        Assert.True(_validator.Validate(dto).IsValid);
+    }
+
+    [Fact]
+    public void Requisicao_ItemComQuantidadeZero_Falha()
+    {
+        var dto = ValidRequisition();
+        dto.Items[0].Quantity = 0;
+
+        Assert.False(_validator.Validate(dto).IsValid);
+    }
+}
+
+public class RequisitionDomainTests
+{
+    private static ALMOXPRO.Domain.Entities.Movements.Requisition BuildRequisition()
+    {
+        var requisition = new ALMOXPRO.Domain.Entities.Movements.Requisition { SectorId = 1 };
+        requisition.Items.Add(new ALMOXPRO.Domain.Entities.Movements.RequisitionItem
+        {
+            ProductId = 1,
+            QuantityRequested = 2
+        });
+        return requisition;
+    }
+
+    [Fact]
+    public void MarkFulfilled_RequisicaoPendente_AtualizaStatusELastro()
+    {
+        var requisition = BuildRequisition();
+
+        requisition.MarkFulfilled(userId: 7, materialExitId: 99);
+
+        Assert.Equal(RequisitionStatus.Atendida, requisition.Status);
+        Assert.Equal(7, requisition.FulfilledByUserId);
+        Assert.Equal(99, requisition.MaterialExitId);
+        Assert.NotNull(requisition.FulfilledAt);
+    }
+
+    [Fact]
+    public void MarkFulfilled_RequisicaoJaAtendida_LancaExcecao()
+    {
+        var requisition = BuildRequisition();
+        requisition.MarkFulfilled(1, 1);
+
+        Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(() => requisition.MarkFulfilled(1, 2));
+    }
+
+    [Fact]
+    public void Cancel_RequisicaoAtendida_LancaExcecao()
+    {
+        var requisition = BuildRequisition();
+        requisition.MarkFulfilled(1, 1);
+
+        Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(requisition.Cancel);
+    }
+
+    [Fact]
+    public void Validate_SemItens_LancaExcecao()
+    {
+        var requisition = new ALMOXPRO.Domain.Entities.Movements.Requisition { SectorId = 1 };
+
+        Assert.Throws<ALMOXPRO.Domain.Exceptions.DomainException>(requisition.Validate);
+    }
+}

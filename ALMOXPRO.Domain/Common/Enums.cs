@@ -45,6 +45,14 @@ public enum StockMovementType
     AjusteInventario = 5
 }
 
+/// <summary>Situação de uma requisição de materiais.</summary>
+public enum RequisitionStatus
+{
+    Pendente = 1,
+    Atendida = 2,
+    Cancelada = 3
+}
+
 public enum InventoryType
 {
     Geral = 1,

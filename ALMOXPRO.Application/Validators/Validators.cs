@@ -129,6 +129,24 @@ public class ExitCreateValidator : AbstractValidator<ExitCreateDto>
     }
 }
 
+public class RequisitionCreateValidator : AbstractValidator<RequisitionCreateDto>
+{
+    public RequisitionCreateValidator()
+    {
+        RuleFor(x => x.WarehouseId).GreaterThan(0).WithMessage("Selecione o almoxarifado.");
+        RuleFor(x => x.SectorId).GreaterThan(0).WithMessage("Selecione o setor solicitante.");
+        RuleFor(x => x.Items).NotEmpty().WithMessage("Inclua ao menos um item na requisição.");
+        RuleFor(x => x.RequesterName).NotEmpty()
+            .WithMessage("Informe o funcionário ou o nome de quem retira.")
+            .When(x => x.EmployeeId is null);
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.ProductId).GreaterThan(0).WithMessage("Item sem produto.");
+            item.RuleFor(i => i.Quantity).GreaterThan(0).WithMessage("Quantidade deve ser maior que zero.");
+        });
+    }
+}
+
 public class TransferCreateValidator : AbstractValidator<TransferCreateDto>
 {
     public TransferCreateValidator()

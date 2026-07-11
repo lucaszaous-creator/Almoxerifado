@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddSingleton<IQrCodeGenerator, QrCodeGenerator>();
         services.AddSingleton<IReportExporter, ReportExporter>();
         services.AddSingleton<ILabelGenerator, LabelGenerator>();
+        services.AddSingleton<IRequisitionDocumentGenerator, RequisitionDocumentGenerator>();
         services.AddSingleton<IEmailService, SmtpEmailService>();
         services.AddScoped<IBackupService>(provider => new PostgresBackupService(
             connectionString,

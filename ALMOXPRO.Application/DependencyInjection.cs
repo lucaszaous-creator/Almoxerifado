@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IMaterialExitService, MaterialExitService>();
         services.AddScoped<IStockTransferService, StockTransferService>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IRequisitionService, RequisitionService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISettingsService, SettingsService>();

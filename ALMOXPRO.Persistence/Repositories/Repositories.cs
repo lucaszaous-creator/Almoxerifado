@@ -386,3 +386,32 @@ public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
 {
     public EmployeeRepository(AlmoxProDbContext context) : base(context) { }
 }
+
+public class RequisitionRepository : Repository<Requisition>, IRequisitionRepository
+{
+    public RequisitionRepository(AlmoxProDbContext context) : base(context) { }
+
+    public Task<Requisition?> GetWithItemsAsync(int id, CancellationToken ct = default) =>
+        Set.Include(r => r.Warehouse).Include(r => r.Sector).Include(r => r.Employee)
+           .Include(r => r.Items).ThenInclude(i => i.Product)
+           .FirstOrDefaultAsync(r => r.Id == id, ct);
+
+    public Task<PagedResult<Requisition>> SearchAsync(PagedQuery query, Domain.Common.RequisitionStatus? status = null,
+        int? sectorId = null, CancellationToken ct = default)
+    {
+        var q = Set.AsNoTracking()
+            .Include(r => r.Warehouse).Include(r => r.Sector).Include(r => r.Employee).Include(r => r.Items)
+            .AsQueryable();
+        if (status.HasValue)
+            q = q.Where(r => r.Status == status.Value);
+        if (sectorId.HasValue)
+            q = q.Where(r => r.SectorId == sectorId.Value);
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = $"%{query.Search.Trim()}%";
+            q = q.Where(r => EF.Functions.ILike(r.Number, s)
+                          || (r.RequesterName != null && EF.Functions.ILike(r.RequesterName, s)));
+        }
+        return q.OrderByDescending(r => r.RequestDate).ToPagedResultAsync(query, ct);
+    }
+}

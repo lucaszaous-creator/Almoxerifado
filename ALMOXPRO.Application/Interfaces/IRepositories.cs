@@ -1,3 +1,4 @@
+using ALMOXPRO.Domain.Common;
 using ALMOXPRO.Domain.Entities.Catalog;
 using ALMOXPRO.Domain.Entities.Configuration;
 using ALMOXPRO.Domain.Entities.Movements;
@@ -94,6 +95,13 @@ public interface IInventoryRepository : IRepository<InventoryCount>
 {
     Task<InventoryCount?> GetWithItemsAsync(int id, CancellationToken ct = default);
     Task<PagedResult<InventoryCount>> SearchAsync(PagedQuery query, CancellationToken ct = default);
+}
+
+public interface IRequisitionRepository : IRepository<Requisition>
+{
+    Task<Requisition?> GetWithItemsAsync(int id, CancellationToken ct = default);
+    Task<PagedResult<Requisition>> SearchAsync(PagedQuery query, RequisitionStatus? status = null,
+        int? sectorId = null, CancellationToken ct = default);
 }
 
 public interface IAuditLogRepository

@@ -26,6 +26,7 @@ public class UnitOfWork : IUnitOfWork
         Exits = new MaterialExitRepository(context);
         Transfers = new StockTransferRepository(context);
         Inventories = new InventoryRepository(context);
+        Requisitions = new RequisitionRepository(context);
         AuditLogs = new AuditLogRepository(context);
         Settings = new AppSettingRepository(context);
         Sequences = new DocumentSequenceRepository(context);
@@ -48,6 +49,7 @@ public class UnitOfWork : IUnitOfWork
     public IMaterialExitRepository Exits { get; }
     public IStockTransferRepository Transfers { get; }
     public IInventoryRepository Inventories { get; }
+    public IRequisitionRepository Requisitions { get; }
     public IAuditLogRepository AuditLogs { get; }
     public IAppSettingRepository Settings { get; }
     public IDocumentSequenceRepository Sequences { get; }
