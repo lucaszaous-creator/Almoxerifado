@@ -66,6 +66,109 @@ public record ManifestResult(bool Success, int StatusCode, string Message);
 
 public record CertificateInfo(string Subject, string Issuer, DateTime NotBefore, DateTime NotAfter);
 
+/// <summary>Dados do emitente para a emissão de NF-e própria.</summary>
+public record NfeEmitter(
+    string Cnpj,
+    string Name,
+    string? Ie,
+    /// <summary>CRT: 1 = Simples Nacional, 3 = Regime Normal.</summary>
+    int Crt,
+    string Street,
+    string Number,
+    string District,
+    int CityCode,
+    string CityName,
+    string Uf,
+    string Cep,
+    string? Phone);
+
+/// <summary>Destinatário da NF-e emitida.</summary>
+public record NfeRecipient(
+    /// <summary>CNPJ (14 dígitos) ou CPF (11 dígitos), só dígitos.</summary>
+    string CnpjCpf,
+    string Name,
+    /// <summary>indIEDest: 1 = contribuinte ICMS, 2 = isento, 9 = não contribuinte.</summary>
+    int IeIndicator,
+    string? Ie,
+    string Street,
+    string Number,
+    string District,
+    int CityCode,
+    string CityName,
+    string Uf,
+    string Cep);
+
+public record NfeDraftItem(
+    int Number,
+    string Code,
+    string Description,
+    string Ncm,
+    string Cfop,
+    string Unit,
+    decimal Quantity,
+    decimal UnitValue,
+    decimal Total,
+    /// <summary>CST do ICMS ("00", "20", "40", "41", "60"). Nas operações sem destaque: "41" ou CSOSN 400.</summary>
+    string IcmsCst,
+    /// <summary>% de redução da base de cálculo (só CST 20).</summary>
+    decimal IcmsBaseReductionPct,
+    /// <summary>Base de cálculo do ICMS já reduzida (0 quando não tributado).</summary>
+    decimal IcmsBase,
+    decimal IcmsRate,
+    decimal IcmsValue,
+    decimal PisValue,
+    decimal CofinsValue);
+
+/// <summary>
+/// NF-e pronta para envio, independente de biblioteca. A chave de acesso, o
+/// código numérico (cNF) e o dígito verificador já vêm calculados pelo serviço.
+/// </summary>
+public record NfeDraft(
+    string AccessKey,
+    string CNf,
+    int CheckDigit,
+    int Number,
+    int Series,
+    DateTimeOffset IssuedAt,
+    string NatureOfOperation,
+    /// <summary>finNFe: 1 = normal, 4 = devolução (exige chave referenciada).</summary>
+    int Finality,
+    /// <summary>Chave da NF-e referenciada (obrigatória na devolução).</summary>
+    string? ReferencedAccessKey,
+    NfeEmitter Emitter,
+    NfeRecipient Recipient,
+    IReadOnlyList<NfeDraftItem> Items,
+    decimal TotalValue,
+    string? AdditionalInfo,
+    /// <summary>True = venda com impostos (ICMS por CST, PIS/COFINS, pagamento real, consumidor final presencial).</summary>
+    bool IsTaxedSale,
+    /// <summary>tPag da NF-e: 01 dinheiro, 03 crédito, 04 débito, 15 boleto, 17 PIX, 90 sem pagamento, 99 outros.</summary>
+    int PaymentMethod,
+    /// <summary>Alíquota de PIS aplicada nos itens da venda (%).</summary>
+    decimal PisRate,
+    /// <summary>Alíquota de COFINS aplicada nos itens da venda (%).</summary>
+    decimal CofinsRate,
+    /// <summary>True = PIS/COFINS como "outras operações" (CST 99, valores zerados) — apuração fora da nota.</summary>
+    bool PisCofinsOutras = false)
+{
+    public decimal IcmsBaseTotal => Items.Sum(i => i.IcmsBase);
+    public decimal IcmsValueTotal => Items.Sum(i => i.IcmsValue);
+    public decimal PisValueTotal => Items.Sum(i => i.PisValue);
+    public decimal CofinsValueTotal => Items.Sum(i => i.CofinsValue);
+}
+
+public record NfeAuthorizationResult(
+    bool Success,
+    int StatusCode,
+    string Message,
+    string? Protocol,
+    /// <summary>XML procNFe (nota + protocolo) quando autorizada.</summary>
+    string? ProcNFeXml);
+
+public record NfeCancelResult(bool Success, int StatusCode, string Message, string? Protocol);
+
+public record SefazServiceStatus(bool Online, int StatusCode, string Message);
+
 /// <summary>Comunicação com a SEFAZ: Distribuição DF-e e Manifestação do Destinatário.</summary>
 public interface IFiscalGateway
 {
@@ -84,6 +187,17 @@ public interface IFiscalGateway
 
     /// <summary>Valida um certificado instalado no Windows pelo thumbprint.</summary>
     CertificateInfo InspectStoreCertificate(string thumbprint);
+
+    /// <summary>Monta, assina e envia a NF-e à SEFAZ (autorização síncrona).</summary>
+    Task<NfeAuthorizationResult> AuthorizeNfeAsync(FiscalConfig config, NfeDraft draft,
+        CancellationToken ct = default);
+
+    /// <summary>Envia o evento de cancelamento (110111) de uma NF-e autorizada.</summary>
+    Task<NfeCancelResult> CancelNfeAsync(FiscalConfig config, string accessKey, string protocol,
+        string justification, CancellationToken ct = default);
+
+    /// <summary>Consulta o status do serviço de autorização da SEFAZ da UF configurada.</summary>
+    Task<SefazServiceStatus> CheckServiceStatusAsync(FiscalConfig config, CancellationToken ct = default);
 }
 
 /// <summary>Geração do DANFE (visualização/impressão) a partir do XML procNFe.</summary>

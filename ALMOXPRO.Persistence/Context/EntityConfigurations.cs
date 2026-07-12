@@ -459,3 +459,23 @@ public class FiscalDocumentConfiguration : IEntityTypeConfiguration<FiscalDocume
         builder.HasIndex(d => d.IssuedAt);
     }
 }
+
+public class IssuedNfeConfiguration : IEntityTypeConfiguration<IssuedNfe>
+{
+    public void Configure(EntityTypeBuilder<IssuedNfe> builder)
+    {
+        builder.ToTable("issued_nfes");
+        builder.Property(n => n.AccessKey).HasMaxLength(44).IsRequired();
+        builder.Property(n => n.NatureOfOperation).HasMaxLength(60).IsRequired();
+        builder.Property(n => n.RecipientCnpjCpf).HasMaxLength(14).IsRequired();
+        builder.Property(n => n.RecipientName).HasMaxLength(200).IsRequired();
+        builder.Property(n => n.TotalValue).HasPrecision(18, 2);
+        builder.Property(n => n.Protocol).HasMaxLength(20).IsRequired();
+        builder.Property(n => n.Xml).HasColumnType("text");
+        builder.Property(n => n.CancelProtocol).HasMaxLength(20);
+        builder.Property(n => n.CancelJustification).HasMaxLength(500);
+        builder.HasIndex(n => n.AccessKey).IsUnique();
+        builder.HasIndex(n => new { n.Series, n.Number }).IsUnique();
+        builder.HasIndex(n => n.IssuedAt);
+    }
+}

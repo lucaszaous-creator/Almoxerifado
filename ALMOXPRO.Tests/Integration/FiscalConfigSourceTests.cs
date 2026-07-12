@@ -109,6 +109,12 @@ public class FiscalConfigSourceTests : IDisposable
             => [new("ABC123", "CN=EMPRESA STORE", DateTime.Today.AddYears(1))];
         public CertificateInfo InspectStoreCertificate(string thumbprint)
             => new($"CN=EMPRESA STORE {thumbprint}", "CN=AC", DateTime.Today, DateTime.Today.AddYears(1));
+        public Task<NfeAuthorizationResult> AuthorizeNfeAsync(FiscalConfig config, NfeDraft draft, CancellationToken ct = default)
+            => throw new InvalidOperationException();
+        public Task<NfeCancelResult> CancelNfeAsync(FiscalConfig config, string accessKey, string protocol, string justification, CancellationToken ct = default)
+            => throw new InvalidOperationException();
+        public Task<SefazServiceStatus> CheckServiceStatusAsync(FiscalConfig config, CancellationToken ct = default)
+            => throw new InvalidOperationException();
     }
 
     private sealed class FakeSession : ICurrentSession

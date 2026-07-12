@@ -35,6 +35,25 @@ public static class SettingKeys
     public const string FiscalCertificateSource = "fiscal.cert_source";
     public const string FiscalCertificateThumbprint = "fiscal.cert_thumbprint";
     public const string FiscalDemoMode = "fiscal.demo_mode";
+    // Dados do emitente para a emissão de NF-e própria.
+    public const string FiscalEmitName = "fiscal.emit_name";
+    public const string FiscalEmitIe = "fiscal.emit_ie";
+    /// <summary>Código de Regime Tributário: "1" Simples Nacional, "3" Regime Normal.</summary>
+    public const string FiscalEmitCrt = "fiscal.emit_crt";
+    public const string FiscalEmitStreet = "fiscal.emit_street";
+    public const string FiscalEmitNumber = "fiscal.emit_number";
+    public const string FiscalEmitDistrict = "fiscal.emit_district";
+    /// <summary>Código IBGE do município do emitente (7 dígitos).</summary>
+    public const string FiscalEmitCityCode = "fiscal.emit_city_code";
+    public const string FiscalEmitCityName = "fiscal.emit_city_name";
+    public const string FiscalEmitCep = "fiscal.emit_cep";
+    public const string FiscalEmitPhone = "fiscal.emit_phone";
+    /// <summary>Série usada nas NF-e emitidas (padrão 1).</summary>
+    public const string FiscalEmitSeries = "fiscal.emit_series";
+    /// <summary>Alíquota de PIS (%) das vendas tributadas. Padrão 0,65 (cumulativo/Lucro Presumido).</summary>
+    public const string FiscalPisRate = "fiscal.pis_rate";
+    /// <summary>Alíquota de COFINS (%) das vendas tributadas. Padrão 3,00 (cumulativo/Lucro Presumido).</summary>
+    public const string FiscalCofinsRate = "fiscal.cofins_rate";
     public const string LabelPrinter = "printers.label";
     public const string ReportPrinter = "printers.report";
     public const string ReportsDirectory = "directories.reports";

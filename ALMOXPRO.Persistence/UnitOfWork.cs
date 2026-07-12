@@ -28,6 +28,7 @@ public class UnitOfWork : IUnitOfWork
         Inventories = new InventoryRepository(context);
         Requisitions = new RequisitionRepository(context);
         FiscalDocuments = new FiscalDocumentRepository(context);
+        IssuedNfes = new IssuedNfeRepository(context);
         AuditLogs = new AuditLogRepository(context);
         Settings = new AppSettingRepository(context);
         Sequences = new DocumentSequenceRepository(context);
@@ -52,6 +53,7 @@ public class UnitOfWork : IUnitOfWork
     public IInventoryRepository Inventories { get; }
     public IRequisitionRepository Requisitions { get; }
     public IFiscalDocumentRepository FiscalDocuments { get; }
+    public IIssuedNfeRepository IssuedNfes { get; }
     public IAuditLogRepository AuditLogs { get; }
     public IAppSettingRepository Settings { get; }
     public IDocumentSequenceRepository Sequences { get; }

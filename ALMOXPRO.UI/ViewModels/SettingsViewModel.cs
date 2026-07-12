@@ -80,6 +80,49 @@ public partial class SettingsViewModel : ViewModelBase
 
     private byte[]? _fiscalCertBytes;
 
+    // Emissão de NF-e: dados do emitente
+    [ObservableProperty]
+    private string _fiscalEmitName = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitIe = string.Empty;
+
+    /// <summary>True = Simples Nacional (CRT 1); false = Regime Normal (CRT 3).</summary>
+    [ObservableProperty]
+    private bool _fiscalEmitSimples;
+
+    [ObservableProperty]
+    private string _fiscalEmitStreet = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitNumber = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitDistrict = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitCityCode = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitCityName = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitCep = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitPhone = string.Empty;
+
+    [ObservableProperty]
+    private string _fiscalEmitSeries = "1";
+
+    /// <summary>Alíquota de PIS (%) das vendas tributadas.</summary>
+    [ObservableProperty]
+    private string _fiscalPisRate = "0,65";
+
+    /// <summary>Alíquota de COFINS (%) das vendas tributadas.</summary>
+    [ObservableProperty]
+    private string _fiscalCofinsRate = "3,00";
+
     public string[] Ufs { get; } =
     [
         "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
@@ -130,6 +173,20 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalProduction = all.GetValueOrDefault(SettingKeys.FiscalProduction) != "false";
         FiscalDemoMode = all.GetValueOrDefault(SettingKeys.FiscalDemoMode) == "true";
         FiscalUseWindowsStore = all.GetValueOrDefault(SettingKeys.FiscalCertificateSource) == "store";
+
+        FiscalEmitName = all.GetValueOrDefault(SettingKeys.FiscalEmitName) ?? string.Empty;
+        FiscalEmitIe = all.GetValueOrDefault(SettingKeys.FiscalEmitIe) ?? string.Empty;
+        FiscalEmitSimples = all.GetValueOrDefault(SettingKeys.FiscalEmitCrt) == "1";
+        FiscalEmitStreet = all.GetValueOrDefault(SettingKeys.FiscalEmitStreet) ?? string.Empty;
+        FiscalEmitNumber = all.GetValueOrDefault(SettingKeys.FiscalEmitNumber) ?? string.Empty;
+        FiscalEmitDistrict = all.GetValueOrDefault(SettingKeys.FiscalEmitDistrict) ?? string.Empty;
+        FiscalEmitCityCode = all.GetValueOrDefault(SettingKeys.FiscalEmitCityCode) ?? string.Empty;
+        FiscalEmitCityName = all.GetValueOrDefault(SettingKeys.FiscalEmitCityName) ?? string.Empty;
+        FiscalEmitCep = all.GetValueOrDefault(SettingKeys.FiscalEmitCep) ?? string.Empty;
+        FiscalEmitPhone = all.GetValueOrDefault(SettingKeys.FiscalEmitPhone) ?? string.Empty;
+        FiscalEmitSeries = all.GetValueOrDefault(SettingKeys.FiscalEmitSeries) ?? "1";
+        FiscalPisRate = all.GetValueOrDefault(SettingKeys.FiscalPisRate) ?? "0,65";
+        FiscalCofinsRate = all.GetValueOrDefault(SettingKeys.FiscalCofinsRate) ?? "3,00";
 
         var fiscal = services.GetRequiredService<IFiscalService>();
 
@@ -193,6 +250,47 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalCertFileName = string.Empty;
         FiscalCertStatus = $"Certificado: {result.Value.Subject}\nVálido até {result.Value.NotAfter:dd/MM/yyyy}";
         Dialog.Notify("Configuração fiscal salva. Use SINCRONIZAR SEFAZ na tela Notas Fiscais.");
+    });
+
+    /// <summary>Grava os dados do emitente usados na emissão de NF-e própria.</summary>
+    [RelayCommand]
+    private Task SaveEmitterConfigAsync() => RunAsync(async services =>
+    {
+        var settings = services.GetRequiredService<ISettingsService>();
+        await settings.SetAsync(SettingKeys.FiscalEmitName, FiscalEmitName.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitIe, FiscalEmitIe.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitCrt, FiscalEmitSimples ? "1" : "3");
+        await settings.SetAsync(SettingKeys.FiscalEmitStreet, FiscalEmitStreet.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitNumber, FiscalEmitNumber.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitDistrict, FiscalEmitDistrict.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitCityCode, FiscalEmitCityCode.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitCityName, FiscalEmitCityName.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitCep, FiscalEmitCep.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitPhone, FiscalEmitPhone.Trim());
+        await settings.SetAsync(SettingKeys.FiscalEmitSeries,
+            int.TryParse(FiscalEmitSeries, out var serie) && serie is >= 1 and <= 889 ? serie.ToString() : "1");
+        await settings.SetAsync(SettingKeys.FiscalPisRate, FiscalPisRate.Trim());
+        await settings.SetAsync(SettingKeys.FiscalCofinsRate, FiscalCofinsRate.Trim());
+        Dialog.Notify("Dados do emitente salvos. Use EMITIR NF-E na tela Notas Fiscais.");
+    });
+
+    /// <summary>Consulta o status do serviço da SEFAZ para testar certificado e conexão.</summary>
+    [RelayCommand]
+    private Task TestSefazConnectionAsync() => RunAsync(async services =>
+    {
+        var emission = services.GetRequiredService<IFiscalEmissionService>();
+        var result = await emission.CheckServiceStatusAsync();
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        var status = result.Value;
+        if (status.Online)
+            Dialog.ShowInfo($"SEFAZ em operação ({status.StatusCode}): {status.Message}");
+        else
+            Dialog.ShowError($"SEFAZ indisponível ({status.StatusCode}): {status.Message}");
     });
 
     [RelayCommand]

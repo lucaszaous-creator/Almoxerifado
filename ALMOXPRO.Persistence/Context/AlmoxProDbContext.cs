@@ -34,6 +34,7 @@ public class AlmoxProDbContext : DbContext
     public DbSet<InventoryCount> InventoryCounts => Set<InventoryCount>();
     public DbSet<Requisition> Requisitions => Set<Requisition>();
     public DbSet<FiscalDocument> FiscalDocuments => Set<FiscalDocument>();
+    public DbSet<IssuedNfe> IssuedNfes => Set<IssuedNfe>();
 
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Sector> Sectors => Set<Sector>();
