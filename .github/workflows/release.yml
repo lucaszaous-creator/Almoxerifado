@@ -59,14 +59,21 @@ jobs:
             ALMOXPRO-Setup-*.exe
             ALMOXPRO-Portable-*.zip
 
-      - name: Criar GitHub Release (apenas em tags)
+      - name: Publicar no GitHub Release (apenas em tags)
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "${{ github.ref_name }}"
-          "ALMOXPRO-Setup-${{ steps.version.outputs.version }}.exe"
-          "ALMOXPRO-Portable-${{ steps.version.outputs.version }}.zip"
-          --title "ALMOX PRO ${{ steps.version.outputs.version }}"
-          --generate-notes
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $files = @("ALMOXPRO-Setup-$version.exe", "ALMOXPRO-Portable-$version.zip")
+          # Se o release já existir (criado pela interface), apenas anexa os
+          # arquivos; caso contrário, cria o release. Evita falhar com
+          # "a release with the same tag name already exists".
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag @files --title "ALMOX PRO $version" --generate-notes
+          }
