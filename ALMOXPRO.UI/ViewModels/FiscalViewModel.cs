@@ -312,6 +312,91 @@ public partial class FiscalViewModel : ViewModelBase
     [RelayCommand]
     private void CloseIssueForm() => IsIssueOpen = false;
 
+    /// <summary>
+    /// Importa o TXT gerado pelo PMS (leiaute do emissor gratuito/UniNFe) e
+    /// preenche o formulário para revisão — nada é enviado sem conferência.
+    /// </summary>
+    [RelayCommand]
+    private Task ImportTxtAsync() => RunAsync(async services =>
+    {
+        var path = Dialog.OpenFile("Arquivo TXT da NF-e (*.txt)|*.txt|Todos os arquivos (*.*)|*.*");
+        if (path is null)
+            return;
+
+        // PMS antigos exportam em ANSI (Latin-1); tenta UTF-8 e recua se houver
+        // caracteres inválidos (U+FFFD).
+        var content = await File.ReadAllTextAsync(path, System.Text.Encoding.UTF8);
+        if (content.Contains('�'))
+            content = await File.ReadAllTextAsync(path, System.Text.Encoding.Latin1);
+
+        if (!NfeTxtParser.TryParse(content, out var note, out var errors))
+        {
+            Dialog.ShowError("Não foi possível importar o TXT:\n\n" + string.Join("\n", errors));
+            return;
+        }
+
+        var warnings = new List<string>(note.Warnings);
+        var settings = services.GetRequiredService<ISettingsService>();
+        var configuredCnpj = await settings.GetAsync(Domain.Entities.Configuration.SettingKeys.FiscalCnpj);
+        if (!string.IsNullOrEmpty(note.EmitterCnpj) && !string.IsNullOrEmpty(configuredCnpj)
+            && note.EmitterCnpj != configuredCnpj)
+            warnings.Add($"O CNPJ emitente do arquivo ({note.EmitterCnpj}) difere do configurado ({configuredCnpj}) — a nota sairá pelo CNPJ configurado.");
+        warnings.Add("A numeração/série será a do ALMOX PRO, não a do PMS.");
+
+        IssueOperationKind = note.LooksLikeTaxedSale ? OperationVenda : OperationSemImposto;
+        IssueNatOp = string.IsNullOrWhiteSpace(note.NatOp) ? IssueNatOp : note.NatOp;
+        IssueIsDevolution = note.Finality == 4 && !note.LooksLikeTaxedSale;
+        IssueReferencedKey = note.ReferencedKey ?? string.Empty;
+        IssueRecipientDoc = note.RecipientCnpjCpf;
+        IssueRecipientName = note.RecipientName;
+        IssueRecipientIeOption = note.RecipientIeIndicator switch
+        {
+            1 => "Contribuinte ICMS",
+            2 => "Contribuinte isento",
+            _ => "Não contribuinte"
+        };
+        IssueRecipientIe = note.RecipientIe ?? string.Empty;
+        IssueStreet = note.Street;
+        IssueNumber = note.Number;
+        IssueDistrict = note.District;
+        IssueCityCode = note.CityCode;
+        IssueCityName = note.CityName;
+        IssueUf = string.IsNullOrWhiteSpace(note.Uf) ? IssueUf : note.Uf.ToUpperInvariant();
+        IssueCep = note.Cep;
+        IssuePaymentMethod = note.PaymentMethod switch
+        {
+            17 => "PIX",
+            3 => "Cartão de crédito",
+            4 => "Cartão de débito",
+            15 => "Boleto",
+            null or 1 => "Dinheiro",
+            _ => "Outros"
+        };
+        IssueAdditionalInfo = note.AdditionalInfo ?? string.Empty;
+
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        IssueItems.Clear();
+        foreach (var item in note.Items)
+            IssueItems.Add(new IssueNfeItemRow
+            {
+                Code = item.Code,
+                Description = item.Description,
+                Ncm = item.Ncm,
+                Cfop = item.Cfop,
+                Unit = item.Unit,
+                Quantity = item.Quantity.ToString("0.####", inv),
+                UnitValue = item.UnitValue.ToString("0.####", inv),
+                IcmsCst = item.IcmsCst ?? string.Empty,
+                IcmsRate = item.IcmsRate?.ToString("0.##", inv) ?? string.Empty,
+                IcmsBaseReduction = item.IcmsBaseReductionPct?.ToString("0.##", inv) ?? string.Empty
+            });
+
+        IsIssueOpen = true;
+        Dialog.ShowInfo($"TXT importado: {note.Items.Count} item(ns) para {note.RecipientName}.\n\n"
+            + "Revise os dados (em especial CST e alíquotas) e clique em EMITIR.\n\n"
+            + string.Join("\n", warnings.Select(w => "• " + w)));
+    });
+
     [RelayCommand]
     private void AddIssueItem() => IssueItems.Add(new IssueNfeItemRow());
 

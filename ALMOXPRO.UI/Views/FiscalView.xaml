@@ -262,7 +262,18 @@
                 Visibility="{Binding IsIssueOpen, Converter={StaticResource BoolToVis}}"
                 materialDesign:ElevationAssist.Elevation="Dp8">
             <DockPanel Margin="20">
-                <TextBlock DockPanel.Dock="Top" Text="Emitir NF-e" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="Emitir NF-e" FontSize="18" FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <Button DockPanel.Dock="Right" Command="{Binding ImportTxtCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Importa o TXT do PMS (leiaute do emissor gratuito/UniNFe) e preenche o formulário para revisão">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileImport" VerticalAlignment="Center" />
+                            <TextBlock Text="IMPORTAR TXT (PMS)" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                </DockPanel>
                 <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="11"
                            Foreground="{DynamicResource MaterialDesignBodyLight}"
                            Text="Venda tributada: informe o CST de ICMS por item (00 integral, 20 base reduzida, 60 ST já retido nas bebidas, 40/41 isento) — PIS/COFINS saem pelas alíquotas das Configurações. Remessas/devoluções saem sem destaque (CST 41/CSOSN 400). Numeração e chave são automáticas." />
