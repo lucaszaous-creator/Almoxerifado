@@ -21,10 +21,6 @@ public static class IssuedNfeDemoXml
         var recipient = draft.Recipient;
         var simples = emitter.Crt == 1;
 
-        var icms = simples
-            ? "<ICMSSN102><orig>0</orig><CSOSN>400</CSOSN></ICMSSN102>"
-            : "<ICMS40><orig>0</orig><CST>41</CST></ICMS40>";
-
         var dets = string.Join("\n", draft.Items.Select(i => $"""
                   <det nItem="{i.Number}">
                     <prod>
@@ -44,9 +40,8 @@ public static class IssuedNfeDemoXml
                       <indTot>1</indTot>
                     </prod>
                     <imposto>
-                      <ICMS>{icms}</ICMS>
-                      <PIS><PISNT><CST>08</CST></PISNT></PIS>
-                      <COFINS><COFINSNT><CST>08</CST></COFINSNT></COFINS>
+                      <ICMS>{BuildIcms(draft, i, simples, inv)}</ICMS>
+                      {BuildPisCofins(draft, i, simples, inv)}
                     </imposto>
                   </det>
             """));
@@ -88,8 +83,8 @@ public static class IssuedNfeDemoXml
                     <cDV>{draft.CheckDigit}</cDV>
                     <tpAmb>2</tpAmb>
                     <finNFe>{draft.Finality}</finNFe>
-                    <indFinal>0</indFinal>
-                    <indPres>0</indPres>
+                    <indFinal>{(draft.IsTaxedSale ? 1 : 0)}</indFinal>
+                    <indPres>{(draft.IsTaxedSale ? 1 : 0)}</indPres>
                     {nfref}
                   </ide>
                   <emit>
@@ -125,16 +120,16 @@ public static class IssuedNfeDemoXml
             {dets}
                   <total>
                     <ICMSTot>
-                      <vBC>0.00</vBC>
-                      <vICMS>0.00</vICMS>
+                      <vBC>{draft.IcmsBaseTotal.ToString("0.00", inv)}</vBC>
+                      <vICMS>{draft.IcmsValueTotal.ToString("0.00", inv)}</vICMS>
                       <vProd>{total}</vProd>
                       <vFrete>0.00</vFrete>
                       <vSeg>0.00</vSeg>
                       <vDesc>0.00</vDesc>
                       <vII>0.00</vII>
                       <vIPI>0.00</vIPI>
-                      <vPIS>0.00</vPIS>
-                      <vCOFINS>0.00</vCOFINS>
+                      <vPIS>{draft.PisValueTotal.ToString("0.00", inv)}</vPIS>
+                      <vCOFINS>{draft.CofinsValueTotal.ToString("0.00", inv)}</vCOFINS>
                       <vOutro>0.00</vOutro>
                       <vNF>{total}</vNF>
                     </ICMSTot>
@@ -144,8 +139,8 @@ public static class IssuedNfeDemoXml
                   </transp>
                   <pag>
                     <detPag>
-                      <tPag>90</tPag>
-                      <vPag>0.00</vPag>
+                      <tPag>{(draft.IsTaxedSale ? draft.PaymentMethod : 90).ToString("00", inv)}</tPag>
+                      <vPag>{(draft.IsTaxedSale ? draft.TotalValue : 0m).ToString("0.00", inv)}</vPag>
                     </detPag>
                   </pag>
                   {infAdic}
@@ -162,6 +157,51 @@ public static class IssuedNfeDemoXml
               </protNFe>
             </nfeProc>
             """;
+    }
+
+    private static string BuildIcms(NfeDraft draft, NfeDraftItem item, bool simples, CultureInfo inv)
+    {
+        if (!draft.IsTaxedSale)
+            return simples
+                ? "<ICMSSN102><orig>0</orig><CSOSN>400</CSOSN></ICMSSN102>"
+                : "<ICMS40><orig>0</orig><CST>41</CST></ICMS40>";
+
+        if (simples)
+            return "<ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102>";
+
+        return item.IcmsCst switch
+        {
+            "00" => $"<ICMS00><orig>0</orig><CST>00</CST><modBC>3</modBC>" +
+                    $"<vBC>{item.IcmsBase.ToString("0.00", inv)}</vBC>" +
+                    $"<pICMS>{item.IcmsRate.ToString("0.00", inv)}</pICMS>" +
+                    $"<vICMS>{item.IcmsValue.ToString("0.00", inv)}</vICMS></ICMS00>",
+            "20" => $"<ICMS20><orig>0</orig><CST>20</CST><modBC>3</modBC>" +
+                    $"<pRedBC>{item.IcmsBaseReductionPct.ToString("0.00", inv)}</pRedBC>" +
+                    $"<vBC>{item.IcmsBase.ToString("0.00", inv)}</vBC>" +
+                    $"<pICMS>{item.IcmsRate.ToString("0.00", inv)}</pICMS>" +
+                    $"<vICMS>{item.IcmsValue.ToString("0.00", inv)}</vICMS></ICMS20>",
+            "60" => "<ICMS60><orig>0</orig><CST>60</CST></ICMS60>",
+            _ => $"<ICMS40><orig>0</orig><CST>{item.IcmsCst}</CST></ICMS40>"
+        };
+    }
+
+    private static string BuildPisCofins(NfeDraft draft, NfeDraftItem item, bool simples, CultureInfo inv)
+    {
+        if (!draft.IsTaxedSale)
+            return "<PIS><PISNT><CST>08</CST></PISNT></PIS>" +
+                   "<COFINS><COFINSNT><CST>08</CST></COFINSNT></COFINS>";
+
+        if (simples)
+            return "<PIS><PISOutr><CST>49</CST><vBC>0.00</vBC><pPIS>0.00</pPIS><vPIS>0.00</vPIS></PISOutr></PIS>" +
+                   "<COFINS><COFINSOutr><CST>49</CST><vBC>0.00</vBC><pCOFINS>0.00</pCOFINS><vCOFINS>0.00</vCOFINS></COFINSOutr></COFINS>";
+
+        var total = item.Total.ToString("0.00", inv);
+        return $"<PIS><PISAliq><CST>01</CST><vBC>{total}</vBC>" +
+               $"<pPIS>{draft.PisRate.ToString("0.00", inv)}</pPIS>" +
+               $"<vPIS>{item.PisValue.ToString("0.00", inv)}</vPIS></PISAliq></PIS>" +
+               $"<COFINS><COFINSAliq><CST>01</CST><vBC>{total}</vBC>" +
+               $"<pCOFINS>{draft.CofinsRate.ToString("0.00", inv)}</pCOFINS>" +
+               $"<vCOFINS>{item.CofinsValue.ToString("0.00", inv)}</vCOFINS></COFINSAliq></COFINS>";
     }
 
     private static string Esc(string value) => SecurityElement.Escape(value);

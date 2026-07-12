@@ -62,8 +62,24 @@ public partial class FiscalViewModel : ViewModelBase
     public ObservableCollection<IssuedNfeDto> IssuedItems { get; } = [];
 
     // Formulário de emissão
+    public const string OperationSemImposto = "Remessa / transferência / devolução (sem imposto)";
+    public const string OperationVenda = "Venda tributada (restaurante / balcão)";
+
     [ObservableProperty]
     private bool _isIssueOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTaxedSaleSelected))]
+    private string _issueOperationKind = OperationSemImposto;
+
+    public string[] OperationKinds { get; } = [OperationSemImposto, OperationVenda];
+
+    public bool IsTaxedSaleSelected => IssueOperationKind == OperationVenda;
+
+    [ObservableProperty]
+    private string _issuePaymentMethod = "Dinheiro";
+
+    public string[] PaymentMethods { get; } = ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Boleto", "Outros"];
 
     [ObservableProperty]
     private string _issueNatOp = "Remessa de material";
@@ -328,6 +344,16 @@ public partial class FiscalViewModel : ViewModelBase
 
         var input = new IssueNfeInput(
             NatureOfOperation: IssueNatOp,
+            IsTaxedSale: IsTaxedSaleSelected,
+            PaymentMethod: IssuePaymentMethod switch
+            {
+                "PIX" => 17,
+                "Cartão de crédito" => 3,
+                "Cartão de débito" => 4,
+                "Boleto" => 15,
+                "Outros" => 99,
+                _ => 1
+            },
             IsDevolution: IssueIsDevolution,
             ReferencedAccessKey: IssueIsDevolution ? IssueReferencedKey : null,
             RecipientCnpjCpf: IssueRecipientDoc,
@@ -448,6 +474,8 @@ public partial class FiscalViewModel : ViewModelBase
 
     private void ClearIssueForm()
     {
+        IssueOperationKind = OperationSemImposto;
+        IssuePaymentMethod = "Dinheiro";
         IssueNatOp = "Remessa de material";
         IssueIsDevolution = false;
         IssueReferencedKey = string.Empty;

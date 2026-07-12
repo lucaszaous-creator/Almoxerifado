@@ -16,10 +16,20 @@ public record IssueNfeItemInput(
     string Cfop,
     string Unit,
     decimal Quantity,
-    decimal UnitValue);
+    decimal UnitValue,
+    /// <summary>CST do ICMS na venda tributada: "00", "20", "40", "41" ou "60". Ignorado nas operações sem destaque.</summary>
+    string? IcmsCst = null,
+    /// <summary>Alíquota de ICMS (%) — obrigatória nos CST 00 e 20.</summary>
+    decimal? IcmsRate = null,
+    /// <summary>% de redução da base de cálculo — obrigatória no CST 20.</summary>
+    decimal? IcmsBaseReductionPct = null);
 
 public record IssueNfeInput(
     string NatureOfOperation,
+    /// <summary>True = venda com impostos (restaurante/balcão); false = remessa/devolução sem destaque.</summary>
+    bool IsTaxedSale,
+    /// <summary>tPag: 01 dinheiro, 03 crédito, 04 débito, 15 boleto, 17 PIX, 99 outros (só venda).</summary>
+    int PaymentMethod,
     /// <summary>True para devolução (finNFe 4, exige a chave da NF-e de origem).</summary>
     bool IsDevolution,
     string? ReferencedAccessKey,
@@ -117,16 +127,44 @@ public class FiscalEmissionService : IFiscalEmissionService
         var accessKey = NfeAccessKey.Build(emitter.Uf, issuedAt, emitter.Cnpj, 55, series, number, 1, cnf);
 
         var recipientDigits = Digits(input.RecipientCnpjCpf);
-        var items = input.Items.Select((item, index) => new NfeDraftItem(
-            index + 1,
-            string.IsNullOrWhiteSpace(item.Code) ? (index + 1).ToString("D3") : item.Code.Trim(),
-            item.Description.Trim(),
-            Digits(item.Ncm),
-            Digits(item.Cfop),
-            item.Unit.Trim(),
-            item.Quantity,
-            item.UnitValue,
-            Math.Round(item.Quantity * item.UnitValue, 2))).ToList();
+        var pisRate = input.IsTaxedSale ? await GetRateAsync(SettingKeys.FiscalPisRate, 0.65m, ct) : 0m;
+        var cofinsRate = input.IsTaxedSale ? await GetRateAsync(SettingKeys.FiscalCofinsRate, 3.00m, ct) : 0m;
+
+        var items = input.Items.Select((item, index) =>
+        {
+            // Arredondamento fiscal: meio sempre para cima (away from zero), não o bancário do .NET.
+            var total = Math.Round(item.Quantity * item.UnitValue, 2, MidpointRounding.AwayFromZero);
+            var cst = input.IsTaxedSale ? item.IcmsCst!.Trim() : "41";
+            var reduction = cst == "20" ? item.IcmsBaseReductionPct!.Value : 0m;
+
+            // Base e valor do ICMS só nos CST com destaque (00 e 20).
+            var rate = cst is "00" or "20" ? item.IcmsRate!.Value : 0m;
+            var baseValue = cst switch
+            {
+                "00" => total,
+                "20" => Math.Round(total * (1 - reduction / 100m), 2, MidpointRounding.AwayFromZero),
+                _ => 0m
+            };
+            var icmsValue = Math.Round(baseValue * rate / 100m, 2, MidpointRounding.AwayFromZero);
+
+            return new NfeDraftItem(
+                index + 1,
+                string.IsNullOrWhiteSpace(item.Code) ? (index + 1).ToString("D3") : item.Code.Trim(),
+                item.Description.Trim(),
+                Digits(item.Ncm),
+                Digits(item.Cfop),
+                item.Unit.Trim(),
+                item.Quantity,
+                item.UnitValue,
+                total,
+                cst,
+                reduction,
+                baseValue,
+                rate,
+                icmsValue,
+                input.IsTaxedSale ? Math.Round(total * pisRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m,
+                input.IsTaxedSale ? Math.Round(total * cofinsRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m);
+        }).ToList();
 
         var draft = new NfeDraft(
             accessKey,
@@ -153,7 +191,11 @@ public class FiscalEmissionService : IFiscalEmissionService
                 Digits(input.RecipientCep)),
             items,
             items.Sum(i => i.Total),
-            string.IsNullOrWhiteSpace(input.AdditionalInfo) ? null : input.AdditionalInfo.Trim());
+            string.IsNullOrWhiteSpace(input.AdditionalInfo) ? null : input.AdditionalInfo.Trim(),
+            input.IsTaxedSale,
+            input.IsTaxedSale ? input.PaymentMethod : 90,
+            pisRate,
+            cofinsRate);
 
         string protocol;
         string procXml;
@@ -310,6 +352,10 @@ public class FiscalEmissionService : IFiscalEmissionService
 
         if (input.IsDevolution && Digits(input.ReferencedAccessKey ?? string.Empty).Length != 44)
             errors.Add("A devolução exige a chave de acesso (44 dígitos) da NF-e de origem.");
+        if (input.IsDevolution && input.IsTaxedSale)
+            errors.Add("Devolução com impostos destacados ainda não é suportada — emita a devolução como operação sem destaque ou fale com o contador.");
+        if (input.IsTaxedSale && input.PaymentMethod is not (1 or 3 or 4 or 15 or 17 or 99))
+            errors.Add("Meio de pagamento inválido para a venda.");
 
         if (input.Items.Count == 0)
             errors.Add("Inclua ao menos um item na nota.");
@@ -327,6 +373,17 @@ public class FiscalEmissionService : IFiscalEmissionService
                 errors.Add($"Item {index}: quantidade deve ser maior que zero.");
             if (item.UnitValue < 0)
                 errors.Add($"Item {index}: valor unitário inválido.");
+
+            if (!input.IsTaxedSale)
+                continue;
+
+            var cst = item.IcmsCst?.Trim();
+            if (cst is not ("00" or "20" or "40" or "41" or "60"))
+                errors.Add($"Item {index}: CST do ICMS deve ser 00, 20, 40, 41 ou 60.");
+            if (cst is "00" or "20" && item.IcmsRate is not > 0)
+                errors.Add($"Item {index}: informe a alíquota de ICMS para o CST {cst}.");
+            if (cst == "20" && item.IcmsBaseReductionPct is not (> 0 and < 100))
+                errors.Add($"Item {index}: informe a redução da base (entre 0 e 100%) para o CST 20.");
         }
 
         return errors.Count > 0 ? Result.Failure(errors.ToArray()) : Result.Success();
@@ -386,6 +443,15 @@ public class FiscalEmissionService : IFiscalEmissionService
 
         return Result.Success(new NfeEmitter(cnpj, name!, ie, crt, street!, number!, district!,
             int.Parse(cityCode), cityName!, uf!, cep, string.IsNullOrWhiteSpace(phone) ? null : phone));
+    }
+
+    private async Task<decimal> GetRateAsync(string key, decimal fallback, CancellationToken ct)
+    {
+        var raw = (await _uow.Settings.GetByKeyAsync(key, ct))?.Value?.Replace(',', '.');
+        return decimal.TryParse(raw, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var rate) && rate is >= 0 and <= 100
+            ? rate
+            : fallback;
     }
 
     private async Task<int> GetSeriesAsync(CancellationToken ct)

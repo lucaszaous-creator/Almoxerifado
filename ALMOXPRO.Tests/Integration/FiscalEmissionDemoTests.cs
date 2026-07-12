@@ -41,6 +41,8 @@ public class FiscalEmissionDemoTests : IDisposable
 
     private static IssueNfeInput ValidInput(string recipientName = "CLIENTE DEMO LTDA") => new(
         NatureOfOperation: "Remessa de material",
+        IsTaxedSale: false,
+        PaymentMethod: 1,
         IsDevolution: false,
         ReferencedAccessKey: null,
         RecipientCnpjCpf: "45.723.174/0001-10",
@@ -123,6 +125,116 @@ public class FiscalEmissionDemoTests : IDisposable
 
         Assert.True(result.IsFailure);
         Assert.Contains(result.Errors, e => e.Contains("devolução"));
+    }
+
+    private static IssueNfeInput TaxedSaleInput() => ValidInput("CONSUMIDOR RESTAURANTE") with
+    {
+        NatureOfOperation = "Venda de mercadoria",
+        IsTaxedSale = true,
+        PaymentMethod = 17, // PIX
+        Items =
+        [
+            // Refeição: ICMS integral de 18% sobre 100,00.
+            new IssueNfeItemInput("REF1", "Refeição executiva", "21069090", "5102", "UN", 10, 10.00m,
+                IcmsCst: "00", IcmsRate: 18m),
+            // Bebida: ICMS-ST já retido pelo fornecedor (CST 60).
+            new IssueNfeItemInput("BEB1", "Refrigerante lata 350ml", "22021000", "5405", "UN", 10, 5.00m,
+                IcmsCst: "60")
+        ]
+    };
+
+    [Fact]
+    public async Task Issue_VendaTributada_CalculaIcmsPisCofinsEPagamento()
+    {
+        var result = await _service.IssueAsync(TaxedSaleInput());
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        Assert.Equal(150.00m, result.Value.TotalValue);
+
+        var xml = System.Xml.Linq.XDocument.Parse((await _service.GetXmlAsync(result.Value.Id)).Value);
+        System.Xml.Linq.XNamespace ns = "http://www.portalfiscal.inf.br/nfe";
+        var tot = xml.Descendants(ns + "ICMSTot").Single();
+
+        // Só a refeição (CST 00) destaca ICMS: base 100,00 × 18% = 18,00.
+        Assert.Equal("100.00", tot.Element(ns + "vBC")!.Value);
+        Assert.Equal("18.00", tot.Element(ns + "vICMS")!.Value);
+        // PIS 0,65% e COFINS 3,00% (padrão cumulativo) sobre os 150,00: 0,65+0,33 e 3,00+1,50.
+        Assert.Equal("0.98", tot.Element(ns + "vPIS")!.Value);
+        Assert.Equal("4.50", tot.Element(ns + "vCOFINS")!.Value);
+
+        var pag = xml.Descendants(ns + "detPag").Single();
+        Assert.Equal("17", pag.Element(ns + "tPag")!.Value);
+        Assert.Equal("150.00", pag.Element(ns + "vPag")!.Value);
+
+        // Consumidor final em operação presencial.
+        Assert.Equal("1", xml.Descendants(ns + "indFinal").Single().Value);
+        Assert.Equal("1", xml.Descendants(ns + "indPres").Single().Value);
+
+        // XML continua compatível com a DANFE.
+        var model = DanfeViewModel.CreateFromXmlString(xml.ToString());
+        Assert.Equal(2, model.Produtos.Count);
+    }
+
+    [Fact]
+    public async Task Issue_VendaTributada_CstInvalido_Falha()
+    {
+        var input = TaxedSaleInput() with
+        {
+            Items = [new IssueNfeItemInput("X", "Item", "21069090", "5102", "UN", 1, 10m, IcmsCst: "99")]
+        };
+
+        var result = await _service.IssueAsync(input);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(result.Errors, e => e.Contains("CST"));
+    }
+
+    [Fact]
+    public async Task Issue_VendaTributada_Cst00SemAliquota_Falha()
+    {
+        var input = TaxedSaleInput() with
+        {
+            Items = [new IssueNfeItemInput("X", "Item", "21069090", "5102", "UN", 1, 10m, IcmsCst: "00")]
+        };
+
+        var result = await _service.IssueAsync(input);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(result.Errors, e => e.Contains("alíquota"));
+    }
+
+    [Fact]
+    public async Task Issue_VendaTributada_ComoDevolucao_Falha()
+    {
+        var input = TaxedSaleInput() with { IsDevolution = true, ReferencedAccessKey = new string('1', 44) };
+
+        var result = await _service.IssueAsync(input);
+
+        Assert.True(result.IsFailure);
+    }
+
+    [Fact]
+    public async Task Issue_VendaTributada_Cst20_ReduzBase()
+    {
+        var input = TaxedSaleInput() with
+        {
+            Items =
+            [
+                // 200,00 com base reduzida a 60% (redução de 40%): vBC 120,00 × 12% = 14,40.
+                new IssueNfeItemInput("R", "Refeição no salão", "21069090", "5102", "UN", 20, 10.00m,
+                    IcmsCst: "20", IcmsRate: 12m, IcmsBaseReductionPct: 40m)
+            ]
+        };
+
+        var result = await _service.IssueAsync(input);
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+        var xml = System.Xml.Linq.XDocument.Parse((await _service.GetXmlAsync(result.Value.Id)).Value);
+        System.Xml.Linq.XNamespace ns = "http://www.portalfiscal.inf.br/nfe";
+        var icms20 = xml.Descendants(ns + "ICMS20").Single();
+        Assert.Equal("40.00", icms20.Element(ns + "pRedBC")!.Value);
+        Assert.Equal("120.00", icms20.Element(ns + "vBC")!.Value);
+        Assert.Equal("14.40", icms20.Element(ns + "vICMS")!.Value);
     }
 
     [Fact]

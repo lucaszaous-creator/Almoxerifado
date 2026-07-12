@@ -265,7 +265,7 @@
                 <TextBlock DockPanel.Dock="Top" Text="Emitir NF-e" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
                 <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="11"
                            Foreground="{DynamicResource MaterialDesignBodyLight}"
-                           Text="Remessas, transferências e devoluções sem destaque de imposto (CSOSN 400 ou CST 41, conforme o regime configurado). A numeração e a chave de acesso são geradas automaticamente." />
+                           Text="Venda tributada: informe o CST de ICMS por item (00 integral, 20 base reduzida, 60 ST já retido nas bebidas, 40/41 isento) — PIS/COFINS saem pelas alíquotas das Configurações. Remessas/devoluções saem sem destaque (CST 41/CSOSN 400). Numeração e chave são automáticas." />
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                     <Button Content="VOLTAR" Style="{StaticResource MaterialDesignFlatButton}"
                             Command="{Binding CloseIssueFormCommand}" Margin="0,0,8,0" />
@@ -278,14 +278,24 @@
                 </StackPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,0,8,0">
+                        <ComboBox materialDesign:HintAssist.Hint="Tipo de operação *" Margin="0,0,0,12"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding OperationKinds}" SelectedItem="{Binding IssueOperationKind}"
+                                  ToolTip="Venda tributada destaca ICMS por item (CST) e PIS/COFINS pelas alíquotas das Configurações" />
                         <TextBox materialDesign:HintAssist.Hint="Natureza da operação *"
                                  Text="{Binding IssueNatOp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
-                                 ToolTip="Ex.: Remessa de material, Transferência entre filiais, Devolução de mercadoria" />
-                        <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
-                                  IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
-                        <TextBox materialDesign:HintAssist.Hint="Chave de acesso da NF-e de origem (44 dígitos) *"
-                                 Text="{Binding IssueReferencedKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
-                                 Visibility="{Binding IssueIsDevolution, Converter={StaticResource BoolToVis}}" />
+                                 ToolTip="Ex.: Venda de mercadoria, Remessa de material, Devolução de mercadoria" />
+                        <ComboBox materialDesign:HintAssist.Hint="Meio de pagamento *" Margin="0,0,0,12"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding IssuePaymentMethod}"
+                                  Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}" />
+                        <StackPanel Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource InverseBoolToVis}}">
+                            <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
+                                      IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
+                            <TextBox materialDesign:HintAssist.Hint="Chave de acesso da NF-e de origem (44 dígitos) *"
+                                     Text="{Binding IssueReferencedKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
+                                     Visibility="{Binding IssueIsDevolution, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>
 
                         <TextBlock Text="Destinatário" FontWeight="SemiBold" Margin="0,4,0,8" />
                         <Grid Margin="0,0,0,12">
@@ -369,6 +379,9 @@
                                 <DataGridTextColumn Header="Un. *" Binding="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" Width="50" />
                                 <DataGridTextColumn Header="Qtde *" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="70" />
                                 <DataGridTextColumn Header="Vl. unit. *" Binding="{Binding UnitValue, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                                <DataGridTextColumn Header="CST" Binding="{Binding IcmsCst, UpdateSourceTrigger=PropertyChanged}" Width="50" />
+                                <DataGridTextColumn Header="ICMS %" Binding="{Binding IcmsRate, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                                <DataGridTextColumn Header="Red.BC %" Binding="{Binding IcmsBaseReduction, UpdateSourceTrigger=PropertyChanged}" Width="70" />
                                 <DataGridTemplateColumn Width="46">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>

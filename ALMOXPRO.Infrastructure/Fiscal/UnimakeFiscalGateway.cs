@@ -305,8 +305,9 @@ public class UnimakeFiscalGateway : IFiscalGateway
             CDV = draft.CheckDigit,
             TpAmb = production ? TipoAmbiente.Producao : TipoAmbiente.Homologacao,
             FinNFe = draft.Finality == 4 ? FinalidadeNFe.Devolucao : FinalidadeNFe.Normal,
-            IndFinal = SimNao.Nao,
-            IndPres = IndicadorPresenca.NaoSeAplica,
+            // Venda de balcão/restaurante: consumidor final em operação presencial.
+            IndFinal = draft.IsTaxedSale ? SimNao.Sim : SimNao.Nao,
+            IndPres = draft.IsTaxedSale ? IndicadorPresenca.OperacaoPresencial : IndicadorPresenca.NaoSeAplica,
             ProcEmi = ProcessoEmissao.AplicativoContribuinte,
             VerProc = "ALMOXPRO 1.0"
         };
@@ -338,14 +339,7 @@ public class UnimakeFiscalGateway : IFiscalGateway
                 VUnTrib = item.UnitValue,
                 IndTot = SimNao.Sim
             },
-            Imposto = new Imposto
-            {
-                ICMS = simples
-                    ? new ICMS { ICMSSN102 = new ICMSSN102 { Orig = OrigemMercadoria.Nacional, CSOSN = "400" } }
-                    : new ICMS { ICMS40 = new ICMS40 { Orig = OrigemMercadoria.Nacional, CST = "41" } },
-                PIS = new PIS { PISNT = new PISNT { CST = "08" } },
-                COFINS = new COFINS { COFINSNT = new COFINSNT { CST = "08" } }
-            }
+            Imposto = BuildImposto(draft, item, simples)
         }).ToList();
 
         return new NFe
@@ -405,8 +399,10 @@ public class UnimakeFiscalGateway : IFiscalGateway
                     {
                         ICMSTot = new ICMSTot
                         {
-                            VBC = 0,
-                            VICMS = 0,
+                            VBC = (double)draft.IcmsBaseTotal,
+                            VICMS = (double)draft.IcmsValueTotal,
+                            VPIS = (double)draft.PisValueTotal,
+                            VCOFINS = (double)draft.CofinsValueTotal,
                             VProd = (double)draft.TotalValue,
                             VNF = (double)draft.TotalValue
                         }
@@ -414,7 +410,14 @@ public class UnimakeFiscalGateway : IFiscalGateway
                     Transp = new Transp { ModFrete = ModalidadeFrete.SemOcorrenciaTransporte },
                     Pag = new Pag
                     {
-                        DetPag = [new DetPag { TPag = MeioPagamento.SemPagamento, VPag = 0 }]
+                        DetPag =
+                        [
+                            new DetPag
+                            {
+                                TPag = MapPayment(draft.IsTaxedSale ? draft.PaymentMethod : 90),
+                                VPag = draft.IsTaxedSale ? (double)draft.TotalValue : 0
+                            }
+                        ]
                     },
                     InfAdic = string.IsNullOrWhiteSpace(draft.AdditionalInfo)
                         ? null
@@ -422,6 +425,101 @@ public class UnimakeFiscalGateway : IFiscalGateway
                 }
         };
     }
+
+    /// <summary>
+    /// Impostos do item. Sem destaque (remessa/devolução): CSOSN 400 ou CST 41
+    /// com PIS/COFINS sem incidência. Venda tributada (Regime Normal): ICMS
+    /// pelo CST informado no item (00 integral, 20 base reduzida, 60 ST retido,
+    /// 40/41 isento/não tributado) e PIS/COFINS por alíquota (CST 01). Venda no
+    /// Simples Nacional: CSOSN 102 (sem destaque) e PIS/COFINS "outras" (49).
+    /// </summary>
+    private static Imposto BuildImposto(NfeDraft draft, NfeDraftItem item, bool simples)
+    {
+        if (!draft.IsTaxedSale)
+            return new Imposto
+            {
+                ICMS = simples
+                    ? new ICMS { ICMSSN102 = new ICMSSN102 { Orig = OrigemMercadoria.Nacional, CSOSN = "400" } }
+                    : new ICMS { ICMS40 = new ICMS40 { Orig = OrigemMercadoria.Nacional, CST = "41" } },
+                PIS = new PIS { PISNT = new PISNT { CST = "08" } },
+                COFINS = new COFINS { COFINSNT = new COFINSNT { CST = "08" } }
+            };
+
+        if (simples)
+            return new Imposto
+            {
+                ICMS = new ICMS { ICMSSN102 = new ICMSSN102 { Orig = OrigemMercadoria.Nacional, CSOSN = "102" } },
+                PIS = new PIS { PISOutr = new PISOutr { CST = "49", VBC = 0, PPIS = 0, VPIS = 0 } },
+                COFINS = new COFINS { COFINSOutr = new COFINSOutr { CST = "49", VBC = 0, PCOFINS = 0, VCOFINS = 0 } }
+            };
+
+        var icms = item.IcmsCst switch
+        {
+            "00" => new ICMS
+            {
+                ICMS00 = new ICMS00
+                {
+                    Orig = OrigemMercadoria.Nacional,
+                    CST = "00",
+                    ModBC = ModalidadeBaseCalculoICMS.ValorOperacao,
+                    VBC = (double)item.IcmsBase,
+                    PICMS = (double)item.IcmsRate,
+                    VICMS = (double)item.IcmsValue
+                }
+            },
+            "20" => new ICMS
+            {
+                ICMS20 = new ICMS20
+                {
+                    Orig = OrigemMercadoria.Nacional,
+                    CST = "20",
+                    ModBC = ModalidadeBaseCalculoICMS.ValorOperacao,
+                    PRedBC = (double)item.IcmsBaseReductionPct,
+                    VBC = (double)item.IcmsBase,
+                    PICMS = (double)item.IcmsRate,
+                    VICMS = (double)item.IcmsValue
+                }
+            },
+            "60" => new ICMS { ICMS60 = new ICMS60 { Orig = OrigemMercadoria.Nacional, CST = "60" } },
+            _ => new ICMS { ICMS40 = new ICMS40 { Orig = OrigemMercadoria.Nacional, CST = item.IcmsCst } }
+        };
+
+        return new Imposto
+        {
+            ICMS = icms,
+            PIS = new PIS
+            {
+                PISAliq = new PISAliq
+                {
+                    CST = "01",
+                    VBC = (double)item.Total,
+                    PPIS = (double)draft.PisRate,
+                    VPIS = (double)item.PisValue
+                }
+            },
+            COFINS = new COFINS
+            {
+                COFINSAliq = new COFINSAliq
+                {
+                    CST = "01",
+                    VBC = (double)item.Total,
+                    PCOFINS = (double)draft.CofinsRate,
+                    VCOFINS = (double)item.CofinsValue
+                }
+            }
+        };
+    }
+
+    private static MeioPagamento MapPayment(int tPag) => tPag switch
+    {
+        1 => MeioPagamento.Dinheiro,
+        3 => MeioPagamento.CartaoCredito,
+        4 => MeioPagamento.CartaoDebito,
+        15 => MeioPagamento.BoletoBancario,
+        17 => MeioPagamento.PagamentoInstantaneo,
+        90 => MeioPagamento.SemPagamento,
+        _ => MeioPagamento.Outros
+    };
 
     private static Configuracao BuildConfiguration(FiscalConfig config) => new()
     {

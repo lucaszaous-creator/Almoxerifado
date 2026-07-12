@@ -115,6 +115,14 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _fiscalEmitSeries = "1";
 
+    /// <summary>Alíquota de PIS (%) das vendas tributadas.</summary>
+    [ObservableProperty]
+    private string _fiscalPisRate = "0,65";
+
+    /// <summary>Alíquota de COFINS (%) das vendas tributadas.</summary>
+    [ObservableProperty]
+    private string _fiscalCofinsRate = "3,00";
+
     public string[] Ufs { get; } =
     [
         "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
@@ -177,6 +185,8 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalEmitCep = all.GetValueOrDefault(SettingKeys.FiscalEmitCep) ?? string.Empty;
         FiscalEmitPhone = all.GetValueOrDefault(SettingKeys.FiscalEmitPhone) ?? string.Empty;
         FiscalEmitSeries = all.GetValueOrDefault(SettingKeys.FiscalEmitSeries) ?? "1";
+        FiscalPisRate = all.GetValueOrDefault(SettingKeys.FiscalPisRate) ?? "0,65";
+        FiscalCofinsRate = all.GetValueOrDefault(SettingKeys.FiscalCofinsRate) ?? "3,00";
 
         var fiscal = services.GetRequiredService<IFiscalService>();
 
@@ -259,6 +269,8 @@ public partial class SettingsViewModel : ViewModelBase
         await settings.SetAsync(SettingKeys.FiscalEmitPhone, FiscalEmitPhone.Trim());
         await settings.SetAsync(SettingKeys.FiscalEmitSeries,
             int.TryParse(FiscalEmitSeries, out var serie) && serie is >= 1 and <= 889 ? serie.ToString() : "1");
+        await settings.SetAsync(SettingKeys.FiscalPisRate, FiscalPisRate.Trim());
+        await settings.SetAsync(SettingKeys.FiscalCofinsRate, FiscalCofinsRate.Trim());
         Dialog.Notify("Dados do emitente salvos. Use EMITIR NF-E na tela Notas Fiscais.");
     });
 

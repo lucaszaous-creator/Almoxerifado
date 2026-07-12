@@ -269,7 +269,20 @@
                                  ToolTip="Código IBGE do município, 7 dígitos (ex.: 3550308 = São Paulo)" />
                     </Grid>
                     <TextBox materialDesign:HintAssist.Hint="Telefone (só dígitos, com DDD)"
-                             Text="{Binding FiscalEmitPhone}" Margin="0,0,0,16" />
+                             Text="{Binding FiscalEmitPhone}" Margin="0,0,0,12" />
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Alíquota PIS % (vendas)"
+                                 Text="{Binding FiscalPisRate}"
+                                 ToolTip="Regime cumulativo (Lucro Presumido): 0,65. Não cumulativo (Lucro Real): 1,65. Confirme com o contador." />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Alíquota COFINS % (vendas)"
+                                 Text="{Binding FiscalCofinsRate}"
+                                 ToolTip="Regime cumulativo (Lucro Presumido): 3,00. Não cumulativo (Lucro Real): 7,60. Confirme com o contador." />
+                    </Grid>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="SALVAR EMITENTE" Command="{Binding SaveEmitterConfigCommand}"
                                 HorizontalAlignment="Left" />

@@ -107,7 +107,17 @@ public record NfeDraftItem(
     string Unit,
     decimal Quantity,
     decimal UnitValue,
-    decimal Total);
+    decimal Total,
+    /// <summary>CST do ICMS ("00", "20", "40", "41", "60"). Nas operações sem destaque: "41" ou CSOSN 400.</summary>
+    string IcmsCst,
+    /// <summary>% de redução da base de cálculo (só CST 20).</summary>
+    decimal IcmsBaseReductionPct,
+    /// <summary>Base de cálculo do ICMS já reduzida (0 quando não tributado).</summary>
+    decimal IcmsBase,
+    decimal IcmsRate,
+    decimal IcmsValue,
+    decimal PisValue,
+    decimal CofinsValue);
 
 /// <summary>
 /// NF-e pronta para envio, independente de biblioteca. A chave de acesso, o
@@ -129,7 +139,21 @@ public record NfeDraft(
     NfeRecipient Recipient,
     IReadOnlyList<NfeDraftItem> Items,
     decimal TotalValue,
-    string? AdditionalInfo);
+    string? AdditionalInfo,
+    /// <summary>True = venda com impostos (ICMS por CST, PIS/COFINS, pagamento real, consumidor final presencial).</summary>
+    bool IsTaxedSale,
+    /// <summary>tPag da NF-e: 01 dinheiro, 03 crédito, 04 débito, 15 boleto, 17 PIX, 90 sem pagamento, 99 outros.</summary>
+    int PaymentMethod,
+    /// <summary>Alíquota de PIS aplicada nos itens da venda (%).</summary>
+    decimal PisRate,
+    /// <summary>Alíquota de COFINS aplicada nos itens da venda (%).</summary>
+    decimal CofinsRate)
+{
+    public decimal IcmsBaseTotal => Items.Sum(i => i.IcmsBase);
+    public decimal IcmsValueTotal => Items.Sum(i => i.IcmsValue);
+    public decimal PisValueTotal => Items.Sum(i => i.PisValue);
+    public decimal CofinsValueTotal => Items.Sum(i => i.CofinsValue);
+}
 
 public record NfeAuthorizationResult(
     bool Success,
