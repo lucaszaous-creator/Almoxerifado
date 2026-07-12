@@ -34,10 +34,19 @@
                         <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenDanfeCommand}"
                                 Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
                                 IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                                ToolTip="Abrir DANFE em PDF (requer XML completo)">
+                                ToolTip="Abrir DANFE em PDF (requer XML completo; NFC-e não tem DANFE)">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
                                 <TextBlock Text="DANFE" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding SaveReceivedXmlCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                ToolTip="Salvar o XML da nota (para arquivo ou envio ao contador)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Xml" VerticalAlignment="Center" />
+                                <TextBlock Text="SALVAR XML" Margin="6,0,0,0" />
                             </StackPanel>
                         </Button>
                     </DockPanel>

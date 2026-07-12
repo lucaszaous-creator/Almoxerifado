@@ -94,6 +94,45 @@ public class FiscalDemoFlowTests : IDisposable
         Assert.Equal(FiscalDocumentStatus.OperacaoNaoRealizada, updated.Status);
     }
 
+    /// <summary>
+    /// A Distribuição DF-e também entrega NFC-e (modelo 65) quando a compra é
+    /// feita com o CNPJ da empresa. A DanfeSharp só desenha NF-e (55); o
+    /// serviço deve responder com mensagem clara em vez de estourar exceção.
+    /// </summary>
+    [Fact]
+    public async Task Danfe_DeNfceModelo65_RetornaMensagemAmigavel()
+    {
+        _context.FiscalDocuments.Add(new global::ALMOXPRO.Domain.Entities.Fiscal.FiscalDocument
+        {
+            AccessKey = new string('5', 44),
+            Nsu = "999",
+            EmitterCnpj = "11222333000181",
+            EmitterName = "MERCADO ATACADISTA DEMO",
+            IssuedAt = DateTime.UtcNow,
+            TotalValue = 150.00m,
+            HasFullXml = true,
+            Xml = """
+                <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+                  <NFe><infNFe Id="NFe55555" versao="4.00">
+                    <ide><cUF>33</cUF><mod>65</mod><serie>1</serie><nNF>123</nNF></ide>
+                  </infNFe></NFe>
+                </nfeProc>
+                """
+        });
+        _context.SaveChanges();
+
+        var doc = await _context.FiscalDocuments.FirstAsync(d => d.EmitterName == "MERCADO ATACADISTA DEMO");
+        var result = await _service.GetDanfePdfAsync(doc.Id);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("NFC-e", result.Error);
+
+        // O XML continua disponível para exportação.
+        var xml = await _service.GetXmlAsync(doc.Id);
+        Assert.True(xml.IsSuccess);
+        Assert.Contains("<mod>65</mod>", xml.Value);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

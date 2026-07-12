@@ -50,6 +50,22 @@ public static class FiscalXmlParser
             ParseDecimal(total?.Element(Ns + "vNF")?.Value ?? "0"));
     }
 
+    /// <summary>Modelo do documento (ide/mod): "55" = NF-e, "65" = NFC-e. Vazio quando ausente.</summary>
+    public static string GetModel(string xml)
+    {
+        try
+        {
+            var doc = XDocument.Parse(xml);
+            return doc.Descendants(Ns + "mod").FirstOrDefault()?.Value.Trim()
+                ?? doc.Descendants("mod").FirstOrDefault()?.Value.Trim()
+                ?? string.Empty;
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+
     private static string Value(XElement root, string name) =>
         root.Descendants(Ns + name).FirstOrDefault()?.Value
         ?? root.Descendants(name).FirstOrDefault()?.Value
