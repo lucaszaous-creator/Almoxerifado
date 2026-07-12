@@ -218,6 +218,28 @@ public partial class FiscalViewModel : ViewModelBase
         Process.Start(new ProcessStartInfo(file) { UseShellExecute = true });
     });
 
+    /// <summary>Salva o XML da nota recebida (única saída para NFC-e, que não tem DANFE).</summary>
+    [RelayCommand]
+    private Task SaveReceivedXmlAsync() => RunAsync(async services =>
+    {
+        if (Selected is null)
+            return;
+
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var result = await fiscal.GetXmlAsync(Selected.Id);
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(result.Error);
+            return;
+        }
+
+        var target = Dialog.SaveFile($"{Selected.AccessKey}-NFe.xml", "XML da NF-e (*.xml)|*.xml");
+        if (target is null)
+            return;
+        await File.WriteAllTextAsync(target, result.Value);
+        Dialog.Notify("XML salvo.");
+    });
+
     [RelayCommand]
     private Task CienciaAsync() => ManifestAsync(ManifestationType.Ciencia,
         "Registrar CIÊNCIA da operação?\nA SEFAZ libera o download do XML completo após a ciência.");

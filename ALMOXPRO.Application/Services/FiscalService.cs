@@ -25,6 +25,9 @@ public interface IFiscalService
     /// <summary>Gera o DANFE (PDF). Exige o XML completo (após Ciência + nova sincronização).</summary>
     Task<Result<byte[]>> GetDanfePdfAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>XML armazenado da nota recebida (procNFe completo ou resumo).</summary>
+    Task<Result<string>> GetXmlAsync(int documentId, CancellationToken ct = default);
+
     /// <summary>Valida e grava o certificado (arquivo A1 ou instalado no Windows) e os dados fiscais.</summary>
     Task<Result<CertificateInfo>> SaveConfigurationAsync(FiscalConfigInput input, CancellationToken ct = default);
 
@@ -204,7 +207,32 @@ public class FiscalService : IFiscalService
                 "O XML completo ainda não foi baixado. Registre a Ciência da Operação e sincronize novamente " +
                 "(a SEFAZ libera o XML completo após a ciência).");
 
-        return Result.Success(_danfe.GeneratePdf(document.Xml));
+        // A Distribuição DF-e também entrega NFC-e (modelo 65) quando a compra
+        // é feita com o CNPJ da empresa; a DANFE só existe para NF-e (55).
+        if (FiscalXmlParser.GetModel(document.Xml) == "65")
+            return Result.Failure<byte[]>(
+                "Esta nota é uma NFC-e (cupom fiscal eletrônico, modelo 65) — a DANFE se aplica apenas " +
+                "à NF-e (modelo 55). Use SALVAR XML para arquivar ou enviar ao contador.");
+
+        try
+        {
+            return Result.Success(_danfe.GeneratePdf(document.Xml));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao gerar DANFE da nota {Chave}", document.AccessKey);
+            return Result.Failure<byte[]>($"Não foi possível gerar a DANFE desta nota: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<string>> GetXmlAsync(int documentId, CancellationToken ct = default)
+    {
+        var document = await _uow.FiscalDocuments.GetByIdAsync(documentId, ct);
+        if (document is null)
+            return Result.Failure<string>("Nota fiscal não encontrada.");
+        if (string.IsNullOrWhiteSpace(document.Xml))
+            return Result.Failure<string>("Esta nota ainda não tem XML armazenado.");
+        return Result.Success(document.Xml);
     }
 
     public IReadOnlyList<InstalledCertificate> ListInstalledCertificates() =>
