@@ -50,7 +50,14 @@ public class DanfeGenerator : IDanfeGenerator
             };
         }).ToList();
 
-        var barcodePng = string.IsNullOrEmpty(accessKey) ? null : _barcode.GeneratePng(accessKey, 460, 60);
+        // O código de barras é opcional: se a geração falhar (ex.: dependência
+        // do System.Drawing indisponível), a DANFE ainda deve ser emitida.
+        byte[]? barcodePng = null;
+        if (!string.IsNullOrEmpty(accessKey))
+        {
+            try { barcodePng = _barcode.GeneratePng(accessKey, 460, 60); }
+            catch { barcodePng = null; }
+        }
 
         return Document.Create(container =>
         {
@@ -87,7 +94,10 @@ public class DanfeGenerator : IDanfeGenerator
                         col.Item().Text("CHAVE DE ACESSO").FontSize(6).FontColor(Colors.Grey.Darken1);
                         col.Item().Text(FormatAccessKey(accessKey)).FontSize(9).SemiBold();
                         if (barcodePng is not null)
-                            col.Item().PaddingTop(4).MaxHeight(50).Image(barcodePng).FitWidth();
+                            // Height fixo + FitArea preserva a proporção dentro da
+                            // caixa; combinar MaxHeight com FitWidth gera "conflicting
+                            // size constraints" quando a altura proporcional excede o teto.
+                            col.Item().PaddingTop(4).Height(46).Image(barcodePng).FitArea();
                         if (protocolo is not null)
                             col.Item().PaddingTop(4).Text(
                                 $"Protocolo de autorização: {Text(protocolo, "nProt")} — {FormatDate(Text(protocolo, "dhRecbto"))}")

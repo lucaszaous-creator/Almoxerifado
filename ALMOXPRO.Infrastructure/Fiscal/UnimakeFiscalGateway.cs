@@ -179,14 +179,20 @@ public class UnimakeFiscalGateway : IFiscalGateway
         TipoDFe = TipoDFe.NFe,
         CertificadoDigital = LoadCertificate(config),
         CodigoUF = (int)ParseUf(config.Uf),
-        TipoAmbiente = config.Production ? TipoAmbiente.Producao : TipoAmbiente.Homologacao
+        TipoAmbiente = config.Production ? TipoAmbiente.Producao : TipoAmbiente.Homologacao,
+        // Apresenta o certificado no handshake TLS antes do envio; alguns
+        // endpoints da SEFAZ recusam (403) quando isso não é feito.
+        PrepararConexaoTLSAntesDoEnvio = true
     };
 
     private static X509Certificate2 LoadCertificate(FiscalConfig config) =>
         !string.IsNullOrWhiteSpace(config.CertificateThumbprint)
             ? LoadFromStore(config.CertificateThumbprint!)
+            // PersistKeySet (não Ephemeral): o SChannel do Windows exige a chave
+            // privada em container persistido para a autenticação TLS de cliente.
+            // Com EphemeralKeySet o certificado não é apresentado e a SEFAZ retorna 403.
             : new X509Certificate2(config.CertificatePfx!, config.CertificatePassword,
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+                X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
 
     private static UFBrasil ParseUf(string uf) =>
         Enum.TryParse<UFBrasil>(uf.Trim().ToUpperInvariant(), out var parsed) ? parsed : UFBrasil.SP;
