@@ -54,6 +54,7 @@ public static class PermissionCodes
     // Fiscal (NF-e)
     public const string FiscalView = "fiscal.view";
     public const string FiscalManifest = "fiscal.manifest";
+    public const string FiscalEmit = "fiscal.emit";
 
     // Relatórios
     public const string ReportsView = "reports.view";
@@ -105,6 +106,7 @@ public static class PermissionCodes
         [PurchasesManage] = "Gerenciar compras",
         [FiscalView] = "Visualizar notas fiscais (NF-e)",
         [FiscalManifest] = "Manifestar NF-e (ciência, confirmação, recusa)",
+        [FiscalEmit] = "Emitir e cancelar NF-e próprias",
         [ReportsView] = "Visualizar relatórios",
         [ReportsExport] = "Exportar relatórios",
         [UsersView] = "Visualizar usuários",

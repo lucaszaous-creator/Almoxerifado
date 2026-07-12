@@ -122,6 +122,12 @@ public class FiscalDemoFlowTests : IDisposable
         public IReadOnlyList<InstalledCertificate> ListInstalledCertificates() => [];
         public CertificateInfo InspectStoreCertificate(string thumbprint)
             => throw new InvalidOperationException();
+        public Task<NfeAuthorizationResult> AuthorizeNfeAsync(FiscalConfig config, NfeDraft draft, CancellationToken ct = default)
+            => throw new InvalidOperationException("Gateway não deve ser chamado no modo demonstração.");
+        public Task<NfeCancelResult> CancelNfeAsync(FiscalConfig config, string accessKey, string protocol, string justification, CancellationToken ct = default)
+            => throw new InvalidOperationException("Gateway não deve ser chamado no modo demonstração.");
+        public Task<SefazServiceStatus> CheckServiceStatusAsync(FiscalConfig config, CancellationToken ct = default)
+            => throw new InvalidOperationException("Gateway não deve ser chamado no modo demonstração.");
     }
 
     private sealed class NoopDanfe : IDanfeGenerator

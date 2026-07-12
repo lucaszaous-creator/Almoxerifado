@@ -460,3 +460,24 @@ public class FiscalDocumentRepository : Repository<FiscalDocument>, IFiscalDocum
         return q.OrderByDescending(d => d.IssuedAt).ToPagedResultAsync(query, ct);
     }
 }
+
+public class IssuedNfeRepository : Repository<IssuedNfe>, IIssuedNfeRepository
+{
+    public IssuedNfeRepository(AlmoxProDbContext context) : base(context) { }
+
+    public async Task<int> GetLastNumberAsync(int series, CancellationToken ct = default) =>
+        await Set.Where(n => n.Series == series).MaxAsync(n => (int?)n.Number, ct) ?? 0;
+
+    public Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, CancellationToken ct = default)
+    {
+        var q = Set.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = $"%{query.Search.Trim()}%";
+            q = q.Where(n => EF.Functions.ILike(n.RecipientName, s)
+                          || n.AccessKey.Contains(query.Search.Trim())
+                          || n.RecipientCnpjCpf.Contains(query.Search.Trim()));
+        }
+        return q.OrderByDescending(n => n.IssuedAt).ToPagedResultAsync(query, ct);
+    }
+}

@@ -21,6 +21,7 @@ public interface IUnitOfWork : IDisposable
     IInventoryRepository Inventories { get; }
     IRequisitionRepository Requisitions { get; }
     IFiscalDocumentRepository FiscalDocuments { get; }
+    IIssuedNfeRepository IssuedNfes { get; }
     IAuditLogRepository AuditLogs { get; }
     IAppSettingRepository Settings { get; }
     IDocumentSequenceRepository Sequences { get; }

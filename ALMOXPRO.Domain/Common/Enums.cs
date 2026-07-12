@@ -67,6 +67,15 @@ public enum FiscalDocumentStatus
     OperacaoNaoRealizada = 5
 }
 
+/// <summary>Situação da NF-e emitida pela própria empresa.</summary>
+public enum IssuedNfeStatus
+{
+    /// <summary>Autorizada pela SEFAZ (uso autorizado).</summary>
+    Autorizada = 1,
+    /// <summary>Cancelada por evento de cancelamento homologado.</summary>
+    Cancelada = 2
+}
+
 public enum InventoryType
 {
     Geral = 1,

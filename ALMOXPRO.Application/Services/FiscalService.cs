@@ -287,8 +287,8 @@ public class FiscalService : IFiscalService
         }
     }
 
-    private async Task<bool> IsDemoModeAsync(CancellationToken ct) =>
-        (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalDemoMode, ct))?.Value == "true";
+    private Task<bool> IsDemoModeAsync(CancellationToken ct) =>
+        FiscalConfigLoader.IsDemoModeAsync(_uow, ct);
 
     /// <summary>
     /// Simula a Distribuição DF-e com notas fictícias: cria os documentos de
@@ -337,37 +337,8 @@ public class FiscalService : IFiscalService
         return Result.Success(new FiscalSyncSummary(newCount, updatedCount, "demo"));
     }
 
-    private async Task<Result<FiscalConfig>> LoadConfigAsync(CancellationToken ct)
-    {
-        var cnpj = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCnpj, ct))?.Value;
-        var uf = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalUf, ct))?.Value;
-        var production = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalProduction, ct))?.Value != "false";
-        var source = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificateSource, ct))?.Value ?? "pfx";
-
-        if (string.IsNullOrWhiteSpace(cnpj) || string.IsNullOrWhiteSpace(uf))
-            return Result.Failure<FiscalConfig>(
-                "Configuração fiscal incompleta. Em Configurações, informe o certificado, o CNPJ e a UF.");
-
-        if (source == "store")
-        {
-            var thumbprint = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificateThumbprint, ct))?.Value;
-            if (string.IsNullOrWhiteSpace(thumbprint))
-                return Result.Failure<FiscalConfig>(
-                    "Selecione o certificado instalado no Windows em Configurações.");
-            return Result.Success(new FiscalConfig(null, null, thumbprint, cnpj, uf, production));
-        }
-
-        var pfx = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePfx, ct))?.Value;
-        var password = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalCertificatePassword, ct))?.Value;
-        if (string.IsNullOrWhiteSpace(pfx))
-            return Result.Failure<FiscalConfig>(
-                "Configuração fiscal incompleta. Em Configurações, envie o certificado A1.");
-
-        return Result.Success(new FiscalConfig(
-            Convert.FromBase64String(pfx),
-            string.IsNullOrEmpty(password) ? string.Empty : SecretProtector.Unprotect(password),
-            null, cnpj, uf, production));
-    }
+    private Task<Result<FiscalConfig>> LoadConfigAsync(CancellationToken ct) =>
+        FiscalConfigLoader.LoadAsync(_uow, ct);
 
     private async Task SaveSettingAsync(string key, string value, CancellationToken ct)
     {

@@ -3,107 +3,199 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <Grid>
-        <DockPanel>
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
-                <TextBox Width="260" materialDesign:HintAssist.Hint="Pesquisar por emitente, CNPJ ou chave"
-                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                         Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
-                         materialDesign:TextFieldAssist.HasClearButton="True">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding SearchDocumentsCommand}" />
-                    </TextBox.InputBindings>
-                </TextBox>
-                <ComboBox Width="130" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Situação"
-                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                          ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" />
-                <Button Margin="8,0,0,0" Command="{Binding SearchDocumentsCommand}"
-                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Magnify" />
-                </Button>
+        <TabControl materialDesign:ColorZoneAssist.Mode="PrimaryMid">
+            <!-- ===== Notas recebidas (Distribuição DF-e) ===== -->
+            <TabItem Header="RECEBIDAS">
+                <DockPanel Margin="0,12,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                        <TextBox Width="260" materialDesign:HintAssist.Hint="Pesquisar por emitente, CNPJ ou chave"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:TextFieldAssist.HasClearButton="True">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchDocumentsCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <ComboBox Width="130" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Situação"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" />
+                        <Button Margin="8,0,0,0" Command="{Binding SearchDocumentsCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Magnify" />
+                        </Button>
 
-                <Button DockPanel.Dock="Right" Command="{Binding SyncCommand}" VerticalAlignment="Center"
-                        ToolTip="Consultar a SEFAZ agora (Distribuição DF-e)">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="CloudDownload" VerticalAlignment="Center" />
-                        <TextBlock Text="SINCRONIZAR SEFAZ" Margin="6,0,0,0" />
-                    </StackPanel>
-                </Button>
-                <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenDanfeCommand}"
-                        Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
-                        IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                        ToolTip="Abrir DANFE em PDF (requer XML completo)">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
-                        <TextBlock Text="DANFE" Margin="6,0,0,0" />
-                    </StackPanel>
-                </Button>
-            </DockPanel>
+                        <Button DockPanel.Dock="Right" Command="{Binding SyncCommand}" VerticalAlignment="Center"
+                                ToolTip="Consultar a SEFAZ agora (Distribuição DF-e)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CloudDownload" VerticalAlignment="Center" />
+                                <TextBlock Text="SINCRONIZAR SEFAZ" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenDanfeCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                ToolTip="Abrir DANFE em PDF (requer XML completo)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
+                                <TextBlock Text="DANFE" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </DockPanel>
 
-            <!-- Ações de manifestação -->
-            <Border DockPanel.Dock="Top" Margin="0,0,0,12" Padding="8"
-                    Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4"
-                    Visibility="{Binding CanManifest, Converter={StaticResource BoolToVis}}">
-                <DockPanel LastChildFill="False">
-                    <TextBlock DockPanel.Dock="Left" Text="Manifestação da nota selecionada:"
-                               VerticalAlignment="Center" Opacity="0.7" Margin="4,0,12,0" />
-                    <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding CienciaCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                            ToolTip="Ciência da Operação: libera o download do XML completo">
-                        <TextBlock Text="CIÊNCIA" />
-                    </Button>
-                    <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding ConfirmOperationCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                            ToolTip="Confirmação da Operação: mercadoria recebida corretamente">
-                        <TextBlock Text="CONFIRMAR" Foreground="#2E7D32" />
-                    </Button>
-                    <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding DesconhecerCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                            ToolTip="Desconhecimento: a empresa não reconhece esta operação">
-                        <TextBlock Text="DESCONHECER" Foreground="#EF6C00" />
-                    </Button>
-                    <Button DockPanel.Dock="Left" Command="{Binding OpenRefuseCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
-                            ToolTip="Operação não Realizada: recusa com justificativa (mercadoria errada, avariada...)">
-                        <TextBlock Text="RECUSAR" Foreground="#C62828" />
-                    </Button>
+                    <!-- Ações de manifestação -->
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,12" Padding="8"
+                            Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4"
+                            Visibility="{Binding CanManifest, Converter={StaticResource BoolToVis}}">
+                        <DockPanel LastChildFill="False">
+                            <TextBlock DockPanel.Dock="Left" Text="Manifestação da nota selecionada:"
+                                       VerticalAlignment="Center" Opacity="0.7" Margin="4,0,12,0" />
+                            <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding CienciaCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                    ToolTip="Ciência da Operação: libera o download do XML completo">
+                                <TextBlock Text="CIÊNCIA" />
+                            </Button>
+                            <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding ConfirmOperationCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                    ToolTip="Confirmação da Operação: mercadoria recebida corretamente">
+                                <TextBlock Text="CONFIRMAR" Foreground="#2E7D32" />
+                            </Button>
+                            <Button DockPanel.Dock="Left" Margin="0,0,8,0" Command="{Binding DesconhecerCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                    ToolTip="Desconhecimento: a empresa não reconhece esta operação">
+                                <TextBlock Text="DESCONHECER" Foreground="#EF6C00" />
+                            </Button>
+                            <Button DockPanel.Dock="Left" Command="{Binding OpenRefuseCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
+                                    ToolTip="Operação não Realizada: recusa com justificativa (mercadoria errada, avariada...)">
+                                <TextBlock Text="RECUSAR" Foreground="#C62828" />
+                            </Button>
+                        </DockPanel>
+                    </Border>
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding PreviousPageCommand}">
+                            <materialDesign:PackIcon Kind="ChevronLeft" />
+                        </Button>
+                        <TextBlock VerticalAlignment="Center" Margin="8,0">
+                            <Run Text="{Binding Page}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                        </TextBlock>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding NextPageCommand}">
+                            <materialDesign:PackIcon Kind="ChevronRight" />
+                        </Button>
+                    </StackPanel>
+
+                    <Grid>
+                        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Emissão" Binding="{Binding IssuedAt, StringFormat=dd/MM/yyyy HH:mm}" Width="130" />
+                                <DataGridTextColumn Header="Emitente" Binding="{Binding EmitterName}" Width="*" />
+                                <DataGridTextColumn Header="CNPJ" Binding="{Binding EmitterCnpj}" Width="130" />
+                                <DataGridTextColumn Header="Valor" Binding="{Binding TotalValue, StringFormat=C2}" Width="110" />
+                                <DataGridTextColumn Header="Situação" Binding="{Binding Status}" Width="140" />
+                                <DataGridCheckBoxColumn Header="XML completo" Binding="{Binding HasFullXml}" Width="100" />
+                                <DataGridTextColumn Header="Chave de acesso" Binding="{Binding AccessKey}" Width="330" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
+                                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="520"
+                                   Text="Nenhuma nota por aqui ainda. Configure o certificado A1 em Configurações e clique em SINCRONIZAR SEFAZ para baixar as notas emitidas contra o CNPJ da empresa."
+                                   Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVis}}" />
+                    </Grid>
                 </DockPanel>
-            </Border>
+            </TabItem>
 
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding PreviousPageCommand}">
-                    <materialDesign:PackIcon Kind="ChevronLeft" />
-                </Button>
-                <TextBlock VerticalAlignment="Center" Margin="8,0">
-                    <Run Text="{Binding Page}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
-                </TextBlock>
-                <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding NextPageCommand}">
-                    <materialDesign:PackIcon Kind="ChevronRight" />
-                </Button>
-            </StackPanel>
+            <!-- ===== Notas emitidas pela empresa ===== -->
+            <TabItem Header="EMITIDAS">
+                <DockPanel Margin="0,12,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12" LastChildFill="False">
+                        <TextBox Width="260" materialDesign:HintAssist.Hint="Pesquisar por destinatário, CNPJ ou chave"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding IssuedSearch, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:TextFieldAssist.HasClearButton="True">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchIssuedCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Margin="8,0,0,0" Command="{Binding SearchIssuedCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Magnify" />
+                        </Button>
 
-            <Grid>
-                <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
-                          AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Emissão" Binding="{Binding IssuedAt, StringFormat=dd/MM/yyyy HH:mm}" Width="130" />
-                        <DataGridTextColumn Header="Emitente" Binding="{Binding EmitterName}" Width="*" />
-                        <DataGridTextColumn Header="CNPJ" Binding="{Binding EmitterCnpj}" Width="130" />
-                        <DataGridTextColumn Header="Valor" Binding="{Binding TotalValue, StringFormat=C2}" Width="110" />
-                        <DataGridTextColumn Header="Situação" Binding="{Binding Status}" Width="140" />
-                        <DataGridCheckBoxColumn Header="XML completo" Binding="{Binding HasFullXml}" Width="100" />
-                        <DataGridTextColumn Header="Chave de acesso" Binding="{Binding AccessKey}" Width="330" />
-                    </DataGrid.Columns>
-                </DataGrid>
-                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
-                           TextWrapping="Wrap" TextAlignment="Center" MaxWidth="520"
-                           Text="Nenhuma nota por aqui ainda. Configure o certificado A1 em Configurações e clique em SINCRONIZAR SEFAZ para baixar as notas emitidas contra o CNPJ da empresa."
-                           Visibility="{Binding Items.Count, Converter={StaticResource ZeroToVis}}" />
-            </Grid>
-        </DockPanel>
+                        <Button DockPanel.Dock="Right" Command="{Binding OpenIssueFormCommand}" VerticalAlignment="Center"
+                                Visibility="{Binding CanEmit, Converter={StaticResource BoolToVis}}"
+                                ToolTip="Emitir uma nova NF-e (remessa, transferência ou devolução)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileDocumentPlusOutline" VerticalAlignment="Center" />
+                                <TextBlock Text="EMITIR NF-E" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenCancelIssuedCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                Visibility="{Binding CanEmit, Converter={StaticResource BoolToVis}}"
+                                IsEnabled="{Binding SelectedIssued, Converter={StaticResource NotNullToBool}}"
+                                ToolTip="Cancelar a NF-e selecionada na SEFAZ (exige justificativa)">
+                            <TextBlock Text="CANCELAR" Foreground="#C62828" />
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding SaveIssuedXmlCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                IsEnabled="{Binding SelectedIssued, Converter={StaticResource NotNullToBool}}"
+                                ToolTip="Salvar o XML autorizado (procNFe) para envio ao cliente/contador">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Xml" VerticalAlignment="Center" />
+                                <TextBlock Text="XML" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenIssuedDanfeCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                IsEnabled="{Binding SelectedIssued, Converter={StaticResource NotNullToBool}}"
+                                ToolTip="Abrir DANFE em PDF da nota emitida">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
+                                <TextBlock Text="DANFE" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </DockPanel>
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding IssuedPreviousPageCommand}">
+                            <materialDesign:PackIcon Kind="ChevronLeft" />
+                        </Button>
+                        <TextBlock VerticalAlignment="Center" Margin="8,0">
+                            <Run Text="{Binding IssuedPage}" /><Run Text=" / " /><Run Text="{Binding IssuedTotalPages}" />
+                        </TextBlock>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding IssuedNextPageCommand}">
+                            <materialDesign:PackIcon Kind="ChevronRight" />
+                        </Button>
+                    </StackPanel>
+
+                    <Grid>
+                        <DataGrid ItemsSource="{Binding IssuedItems}" SelectedItem="{Binding SelectedIssued}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Número" Binding="{Binding DisplayNumber}" Width="130" />
+                                <DataGridTextColumn Header="Emissão" Binding="{Binding IssuedAt, StringFormat=dd/MM/yyyy HH:mm}" Width="130" />
+                                <DataGridTextColumn Header="Destinatário" Binding="{Binding RecipientName}" Width="*" />
+                                <DataGridTextColumn Header="CNPJ/CPF" Binding="{Binding RecipientCnpjCpf}" Width="120" />
+                                <DataGridTextColumn Header="Natureza" Binding="{Binding NatureOfOperation}" Width="160" />
+                                <DataGridTextColumn Header="Valor" Binding="{Binding TotalValue, StringFormat=C2}" Width="100" />
+                                <DataGridTextColumn Header="Situação" Binding="{Binding Status}" Width="100" />
+                                <DataGridCheckBoxColumn Header="Produção" Binding="{Binding IsProduction}" Width="80" />
+                                <DataGridTextColumn Header="Chave de acesso" Binding="{Binding AccessKey}" Width="330" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"
+                                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="520"
+                                   Text="Nenhuma NF-e emitida ainda. Preencha os dados do emitente em Configurações e clique em EMITIR NF-E para enviar remessas, transferências ou devoluções à SEFAZ."
+                                   Visibility="{Binding IssuedItems.Count, Converter={StaticResource ZeroToVis}}" />
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
 
         <!-- Painel de recusa (Operação não Realizada) -->
         <Border HorizontalAlignment="Right" Width="440"
@@ -131,6 +223,172 @@
                              Text="{Binding RefuseJustification, UpdateSourceTrigger=PropertyChanged}"
                              TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" />
                 </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Painel de cancelamento da NF-e emitida -->
+        <Border HorizontalAlignment="Right" Width="440"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsCancelIssuedOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Cancelar NF-e emitida"
+                           FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,16"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Text="O evento de cancelamento (110111) é enviado à SEFAZ e é definitivo. Em regra o prazo é de 24 horas após a autorização." />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="VOLTAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CloseCancelIssuedCommand}" Margin="0,0,8,0" />
+                    <Button Content="ENVIAR CANCELAMENTO" Background="#C62828" BorderBrush="#C62828"
+                            Command="{Binding ConfirmCancelIssuedCommand}" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="{Binding SelectedIssued.RecipientName}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding SelectedIssued.AccessKey}" FontSize="11" Opacity="0.7" Margin="0,0,0,16" />
+                    <TextBox materialDesign:HintAssist.Hint="Justificativa (mínimo 15 caracteres) *"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Text="{Binding CancelIssuedJustification, UpdateSourceTrigger=PropertyChanged}"
+                             TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Painel de emissão de NF-e -->
+        <Border HorizontalAlignment="Right" Width="680"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+                Visibility="{Binding IsIssueOpen, Converter={StaticResource BoolToVis}}"
+                materialDesign:ElevationAssist.Elevation="Dp8">
+            <DockPanel Margin="20">
+                <TextBlock DockPanel.Dock="Top" Text="Emitir NF-e" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="11"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Text="Remessas, transferências e devoluções sem destaque de imposto (CSOSN 400 ou CST 41, conforme o regime configurado). A numeração e a chave de acesso são geradas automaticamente." />
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="VOLTAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CloseIssueFormCommand}" Margin="0,0,8,0" />
+                    <Button Command="{Binding ConfirmIssueCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CloudUpload" VerticalAlignment="Center" />
+                            <TextBlock Text="ASSINAR E ENVIAR À SEFAZ" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,8,0">
+                        <TextBox materialDesign:HintAssist.Hint="Natureza da operação *"
+                                 Text="{Binding IssueNatOp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
+                                 ToolTip="Ex.: Remessa de material, Transferência entre filiais, Devolução de mercadoria" />
+                        <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
+                                  IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
+                        <TextBox materialDesign:HintAssist.Hint="Chave de acesso da NF-e de origem (44 dígitos) *"
+                                 Text="{Binding IssueReferencedKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
+                                 Visibility="{Binding IssueIsDevolution, Converter={StaticResource BoolToVis}}" />
+
+                        <TextBlock Text="Destinatário" FontWeight="SemiBold" Margin="0,4,0,8" />
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="CNPJ ou CPF *"
+                                     Text="{Binding IssueRecipientDoc, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Razão social / nome *"
+                                     Text="{Binding IssueRecipientName, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Situação de IE"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      ItemsSource="{Binding IeOptions}" SelectedItem="{Binding IssueRecipientIeOption}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Inscrição Estadual (se contribuinte)"
+                                     Text="{Binding IssueRecipientIe, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Logradouro *"
+                                     Text="{Binding IssueStreet, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Número *"
+                                     Text="{Binding IssueNumber, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="140" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Bairro *"
+                                     Text="{Binding IssueDistrict, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="CEP *"
+                                     Text="{Binding IssueCep, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Município *"
+                                     Text="{Binding IssueCityName, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Cód. IBGE *"
+                                     Text="{Binding IssueCityCode, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Código IBGE do município, 7 dígitos (ex.: 3550308 = São Paulo)" />
+                            <ComboBox Grid.Column="4" materialDesign:HintAssist.Hint="UF *"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      ItemsSource="{Binding Ufs}" SelectedItem="{Binding IssueUf}" />
+                        </Grid>
+
+                        <DockPanel Margin="0,4,0,8" LastChildFill="False">
+                            <TextBlock DockPanel.Dock="Left" Text="Itens da nota" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    Command="{Binding AddIssueItemCommand}" ToolTip="Adicionar item">
+                                <materialDesign:PackIcon Kind="Plus" />
+                            </Button>
+                        </DockPanel>
+                        <DataGrid ItemsSource="{Binding IssueItems}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" MinHeight="120" MaxHeight="240" Margin="0,0,0,12">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Código" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="Descrição *" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="NCM *" Binding="{Binding Ncm, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                                                    />
+                                <DataGridTextColumn Header="CFOP *" Binding="{Binding Cfop, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                                <DataGridTextColumn Header="Un. *" Binding="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" Width="50" />
+                                <DataGridTextColumn Header="Qtde *" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="Vl. unit. *" Binding="{Binding UnitValue, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                                <DataGridTemplateColumn Width="46">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource MaterialDesignFlatButton}" Padding="4"
+                                                    Command="{Binding DataContext.RemoveIssueItemCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}" ToolTip="Remover item">
+                                                <materialDesign:PackIcon Kind="Delete" Foreground="#C62828" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBox materialDesign:HintAssist.Hint="Informações complementares (opcional)"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding IssueAdditionalInfo, UpdateSourceTrigger=PropertyChanged}"
+                                 TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60" />
+                    </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Border>
     </Grid>

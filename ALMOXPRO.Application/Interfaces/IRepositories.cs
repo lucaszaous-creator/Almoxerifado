@@ -137,6 +137,14 @@ public interface IFiscalDocumentRepository : IRepository<FiscalDocument>
         CancellationToken ct = default);
 }
 
+public interface IIssuedNfeRepository : IRepository<IssuedNfe>
+{
+    /// <summary>Maior número já usado na série (0 quando não há notas na série).</summary>
+    Task<int> GetLastNumberAsync(int series, CancellationToken ct = default);
+
+    Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, CancellationToken ct = default);
+}
+
 public interface ICostCenterRepository : IRepository<CostCenter>;
 public interface ISectorRepository : IRepository<Sector>;
 public interface IEmployeeRepository : IRepository<Employee>;

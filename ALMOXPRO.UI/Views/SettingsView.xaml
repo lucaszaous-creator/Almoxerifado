@@ -206,6 +206,85 @@
                 </StackPanel>
             </materialDesign:Card>
 
+            <!-- Emissão de NF-e: dados do emitente -->
+            <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20"
+                                 Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <materialDesign:PackIcon Kind="FileDocumentEditOutline" VerticalAlignment="Center" Width="24" Height="24" />
+                        <TextBlock Text="Emissão de NF-e (dados do emitente)" FontSize="16" FontWeight="SemiBold"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="Usados nas notas emitidas pelo sistema (remessas, transferências e devoluções). O CNPJ, a UF e o certificado são os da configuração fiscal ao lado."
+                               TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}" />
+                    <TextBox materialDesign:HintAssist.Hint="Razão social do emitente *"
+                             Text="{Binding FiscalEmitName}" Margin="0,0,0,12" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="110" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Inscrição Estadual (vazio = ISENTO)"
+                                 Text="{Binding FiscalEmitIe}" />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Série"
+                                 Text="{Binding FiscalEmitSeries}" ToolTip="Série das NF-e emitidas (padrão 1)" />
+                    </Grid>
+                    <CheckBox Content="Optante pelo Simples Nacional (CSOSN 400 nos itens)"
+                              IsChecked="{Binding FiscalEmitSimples}" Margin="0,0,0,12"
+                              ToolTip="Desmarcado: Regime Normal, itens com CST 41 (não tributado)" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Logradouro *"
+                                 Text="{Binding FiscalEmitStreet}" />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Número *"
+                                 Text="{Binding FiscalEmitNumber}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Bairro *"
+                                 Text="{Binding FiscalEmitDistrict}" />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="CEP *"
+                                 Text="{Binding FiscalEmitCep}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="140" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Município *"
+                                 Text="{Binding FiscalEmitCityName}" />
+                        <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Cód. IBGE *"
+                                 Text="{Binding FiscalEmitCityCode}"
+                                 ToolTip="Código IBGE do município, 7 dígitos (ex.: 3550308 = São Paulo)" />
+                    </Grid>
+                    <TextBox materialDesign:HintAssist.Hint="Telefone (só dígitos, com DDD)"
+                             Text="{Binding FiscalEmitPhone}" Margin="0,0,0,16" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="SALVAR EMITENTE" Command="{Binding SaveEmitterConfigCommand}"
+                                HorizontalAlignment="Left" />
+                        <Button Margin="8,0,0,0" Command="{Binding TestSefazConnectionCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                ToolTip="Consulta o status do serviço da SEFAZ com o certificado configurado">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CloudCheckOutline" VerticalAlignment="Center" />
+                                <TextBlock Text="TESTAR SEFAZ" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
+
             <!-- Banco de dados -->
             <materialDesign:Card Width="420" Margin="0,0,16,16" Padding="20"
                                  Visibility="{Binding CanManage, Converter={StaticResource BoolToVis}}">
