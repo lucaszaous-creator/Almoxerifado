@@ -142,6 +142,79 @@ public class NfeTxtParserTests
         Assert.Contains(errors, e => e.Contains("modelo 65"));
     }
 
+    /// <summary>
+    /// Estrutura idêntica à exportada pelo PMS hoteleiro real (registros
+    /// M/N/Q/S vazios, Q05/S05 com CST 99 zerado, pagamento em YA01 com
+    /// indPag vazio, X sem separador final e observações no Z).
+    /// </summary>
+    [Fact]
+    public void Parse_ArquivoRealDePmsHoteleiro_LeTudo()
+    {
+        var txt = """
+            NOTAFISCAL|1
+            A|4.00|NFe33260211222333000181550010000364791005837615|
+            B|33|00583761|VENDA|55|1|36479|2026-02-03T10:37:51-03:00|2026-02-03T10:37:51-03:00|1|1|3302403|1|1|5|1|1|1|1|1|4.01_b029|||
+            C|HOTEL EXEMPLO LTDA|HOTEL EXEMPLO|78735821||||3|
+            C02|11222333000181|
+            C05|AV. BEIRA MAR, 1642|1642||CENTRO|3302403|Macae                    |RJ|27920390|1058|BRASIL||
+            E|AGENCIA DE VIAGENS EXEMPLO|9|135853970110||||
+            E02|44555666000199|
+            E05|RUA EXEMPLO|755|2 ANDAR|CONSOLACAO|3550308|Sao Paulo                |SP|01415003|1058|BRASIL||
+            H|1||
+            I|704|SEM GTIN|FRUTAS DA ESTACAO GRANDE|21069090|||5102|UN|1.0000|33.00|33.00|SEM GTIN|UN|1.000|33.00|||||1||||||
+            M||
+            N|
+            N02|0|00|3|33.00|12.00|3.96||||||||
+            Q|
+            Q05|99|0.00|
+            Q10|0.0000|0.0000|
+            S|
+            S05|99|0.00|
+            S09|0.0000|0.0000|
+            H|2||
+            I|8|SEM GTIN|AGUA S/ GAS (GARRAFA 310ML)|22021000|||5102|UN|2.0000|9.00|18.00|SEM GTIN|UN|2.000|9.00|||||1||||||
+            M||
+            N|
+            N08|0|60|18.00|0.00|0.00|0.00||||||||
+            Q|
+            Q05|99|0.00|
+            Q10|0.0000|0.0000|
+            S|
+            S05|99|0.00|
+            S09|0.0000|0.0000|
+            W|
+            W02|33.00|3.96|0.00|0.00|51.00|0.00|0.00|0.00|0.00|0.00|0.00|0.00|0.00|0.00|51.00|
+            W04c|0.00|
+            X|9
+            YA
+            YA01||99|51.00|
+            Z||NH: 583761    Procon - RJ Rua da Ajuda, 05, Centro - RJ, Tel 151
+            """;
+
+        var ok = NfeTxtParser.TryParse(txt, out var note, out var errors);
+
+        Assert.True(ok, string.Join("; ", errors));
+        Assert.Equal("VENDA", note.NatOp);
+        Assert.Equal(1, note.Finality);
+        Assert.Equal("11222333000181", note.EmitterCnpj);
+        Assert.Equal("44555666000199", note.RecipientCnpjCpf);
+        Assert.Equal(9, note.RecipientIeIndicator);
+        Assert.Equal("SP", note.Uf);
+        Assert.Equal("3550308", note.CityCode);
+        Assert.Equal(99, note.PaymentMethod);
+        Assert.True(note.UsesPisCofinsOutras);
+        Assert.True(note.LooksLikeTaxedSale);
+        Assert.StartsWith("NH: 583761", note.AdditionalInfo);
+
+        Assert.Equal(2, note.Items.Count);
+        Assert.Equal("00", note.Items[0].IcmsCst);
+        Assert.Equal(12m, note.Items[0].IcmsRate);
+        Assert.Equal(33m, note.Items[0].UnitValue);
+        Assert.Equal("60", note.Items[1].IcmsCst);
+        Assert.Equal(2m, note.Items[1].Quantity);
+        Assert.Equal("5102", note.Items[1].Cfop);
+    }
+
     [Fact]
     public void Parse_ArquivoSemRegistros_Falha()
     {

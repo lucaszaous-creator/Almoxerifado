@@ -195,6 +195,10 @@ public static class IssuedNfeDemoXml
             return "<PIS><PISOutr><CST>49</CST><vBC>0.00</vBC><pPIS>0.00</pPIS><vPIS>0.00</vPIS></PISOutr></PIS>" +
                    "<COFINS><COFINSOutr><CST>49</CST><vBC>0.00</vBC><pCOFINS>0.00</pCOFINS><vCOFINS>0.00</vCOFINS></COFINSOutr></COFINS>";
 
+        if (draft.PisCofinsOutras)
+            return "<PIS><PISOutr><CST>99</CST><vBC>0.00</vBC><pPIS>0.00</pPIS><vPIS>0.00</vPIS></PISOutr></PIS>" +
+                   "<COFINS><COFINSOutr><CST>99</CST><vBC>0.00</vBC><pCOFINS>0.00</pCOFINS><vCOFINS>0.00</vCOFINS></COFINSOutr></COFINS>";
+
         var total = item.Total.ToString("0.00", inv);
         return $"<PIS><PISAliq><CST>01</CST><vBC>{total}</vBC>" +
                $"<pPIS>{draft.PisRate.ToString("0.00", inv)}</pPIS>" +

@@ -484,29 +484,35 @@ public class UnimakeFiscalGateway : IFiscalGateway
             _ => new ICMS { ICMS40 = new ICMS40 { Orig = OrigemMercadoria.Nacional, CST = item.IcmsCst } }
         };
 
+        // PIS/COFINS: "outras operações" (CST 99, zerado — apuração fora da
+        // nota, como os PMS hoteleiros emitem) ou por alíquota (CST 01).
         return new Imposto
         {
             ICMS = icms,
-            PIS = new PIS
-            {
-                PISAliq = new PISAliq
+            PIS = draft.PisCofinsOutras
+                ? new PIS { PISOutr = new PISOutr { CST = "99", VBC = 0, PPIS = 0, VPIS = 0 } }
+                : new PIS
                 {
-                    CST = "01",
-                    VBC = (double)item.Total,
-                    PPIS = (double)draft.PisRate,
-                    VPIS = (double)item.PisValue
-                }
-            },
-            COFINS = new COFINS
-            {
-                COFINSAliq = new COFINSAliq
+                    PISAliq = new PISAliq
+                    {
+                        CST = "01",
+                        VBC = (double)item.Total,
+                        PPIS = (double)draft.PisRate,
+                        VPIS = (double)item.PisValue
+                    }
+                },
+            COFINS = draft.PisCofinsOutras
+                ? new COFINS { COFINSOutr = new COFINSOutr { CST = "99", VBC = 0, PCOFINS = 0, VCOFINS = 0 } }
+                : new COFINS
                 {
-                    CST = "01",
-                    VBC = (double)item.Total,
-                    PCOFINS = (double)draft.CofinsRate,
-                    VCOFINS = (double)item.CofinsValue
+                    COFINSAliq = new COFINSAliq
+                    {
+                        CST = "01",
+                        VBC = (double)item.Total,
+                        PCOFINS = (double)draft.CofinsRate,
+                        VCOFINS = (double)item.CofinsValue
+                    }
                 }
-            }
         };
     }
 

@@ -46,7 +46,9 @@ public record IssueNfeInput(
     string RecipientUf,
     string RecipientCep,
     string? AdditionalInfo,
-    IReadOnlyList<IssueNfeItemInput> Items);
+    IReadOnlyList<IssueNfeItemInput> Items,
+    /// <summary>True = PIS/COFINS como "outras operações" (CST 99, valores zerados); false = por alíquota (CST 01).</summary>
+    bool PisCofinsOutras = false);
 
 public interface IFiscalEmissionService
 {
@@ -127,8 +129,9 @@ public class FiscalEmissionService : IFiscalEmissionService
         var accessKey = NfeAccessKey.Build(emitter.Uf, issuedAt, emitter.Cnpj, 55, series, number, 1, cnf);
 
         var recipientDigits = Digits(input.RecipientCnpjCpf);
-        var pisRate = input.IsTaxedSale ? await GetRateAsync(SettingKeys.FiscalPisRate, 0.65m, ct) : 0m;
-        var cofinsRate = input.IsTaxedSale ? await GetRateAsync(SettingKeys.FiscalCofinsRate, 3.00m, ct) : 0m;
+        var withPisCofins = input.IsTaxedSale && !input.PisCofinsOutras;
+        var pisRate = withPisCofins ? await GetRateAsync(SettingKeys.FiscalPisRate, 0.65m, ct) : 0m;
+        var cofinsRate = withPisCofins ? await GetRateAsync(SettingKeys.FiscalCofinsRate, 3.00m, ct) : 0m;
 
         var items = input.Items.Select((item, index) =>
         {
@@ -162,8 +165,8 @@ public class FiscalEmissionService : IFiscalEmissionService
                 baseValue,
                 rate,
                 icmsValue,
-                input.IsTaxedSale ? Math.Round(total * pisRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m,
-                input.IsTaxedSale ? Math.Round(total * cofinsRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m);
+                withPisCofins ? Math.Round(total * pisRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m,
+                withPisCofins ? Math.Round(total * cofinsRate / 100m, 2, MidpointRounding.AwayFromZero) : 0m);
         }).ToList();
 
         var draft = new NfeDraft(
@@ -195,7 +198,8 @@ public class FiscalEmissionService : IFiscalEmissionService
             input.IsTaxedSale,
             input.IsTaxedSale ? input.PaymentMethod : 90,
             pisRate,
-            cofinsRate);
+            cofinsRate,
+            input.IsTaxedSale && input.PisCofinsOutras);
 
         string protocol;
         string procXml;

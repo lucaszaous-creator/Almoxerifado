@@ -147,7 +147,9 @@ public record NfeDraft(
     /// <summary>Alíquota de PIS aplicada nos itens da venda (%).</summary>
     decimal PisRate,
     /// <summary>Alíquota de COFINS aplicada nos itens da venda (%).</summary>
-    decimal CofinsRate)
+    decimal CofinsRate,
+    /// <summary>True = PIS/COFINS como "outras operações" (CST 99, valores zerados) — apuração fora da nota.</summary>
+    bool PisCofinsOutras = false)
 {
     public decimal IcmsBaseTotal => Items.Sum(i => i.IcmsBase);
     public decimal IcmsValueTotal => Items.Sum(i => i.IcmsValue);

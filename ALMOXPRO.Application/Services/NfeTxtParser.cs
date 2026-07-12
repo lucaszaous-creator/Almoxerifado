@@ -34,8 +34,10 @@ public record NfeTxtNote(
     string CityName,
     string Uf,
     string Cep,
-    /// <summary>tPag do primeiro detPag (registro YA); null quando ausente.</summary>
+    /// <summary>tPag do primeiro detPag (registro YA/YA01); null quando ausente.</summary>
     int? PaymentMethod,
+    /// <summary>True quando o arquivo traz PIS/COFINS como "outras operações" (CST 99, valores zerados) em vez de alíquota.</summary>
+    bool UsesPisCofinsOutras,
     string? AdditionalInfo,
     /// <summary>True quando algum item destaca imposto (CST 00/20/60 ou PIS por alíquota).</summary>
     bool LooksLikeTaxedSale,
@@ -82,6 +84,8 @@ public static class NfeTxtParser
         string? additionalInfo = null;
         var items = new List<NfeTxtItem>();
         var seenA = 0;
+        var sawPisAliq = false;
+        var sawPisOther = false;
 
         foreach (var line in lines)
         {
@@ -213,11 +217,25 @@ public static class NfeTxtParser
                     UpdateLastItem(items, i => i with { Csosn = F(1) });
                     break;
 
-                case "YA":
+                // PIS: Q02 = por alíquota (CST 01/02); Q04/Q05 = NT/outras (CST 04-09/49/99).
+                case "Q02":
+                    sawPisAliq = true;
+                    break;
+                case "Q04" or "Q05":
+                    sawPisOther = true;
+                    break;
+
+                // Pagamento: o detPag vem como YA no leiaute antigo ou YA01/YA02
+                // nos PMS atuais, com indPag opcional (e às vezes vazio) antes do
+                // tPag: "YA01||99|158.00" → tPag 99.
+                case var y when y.StartsWith("YA", StringComparison.Ordinal):
                 {
-                    // 4.00 aceita indPag opcional antes do tPag: YA|tPag|vPag ou YA|indPag|tPag|vPag.
-                    var first = ParseInt(F(0));
-                    payment ??= first is 0 or 1 or 2 && F(0).Length == 1 ? ParseInt(F(1)) : first;
+                    for (var i = 0; i < 2 && i < f.Length && payment is null; i++)
+                    {
+                        if (f[i].Length is 0 or > 2 || (f[i].Length == 1 && ParseInt(f[i]) is 0 or 1 or 2))
+                            continue; // indPag (ou vazio): o tPag vem no próximo campo.
+                        payment = ParseInt(f[i]);
+                    }
                     break;
                 }
 
@@ -246,7 +264,7 @@ public static class NfeTxtParser
         var taxed = items.Any(i => i.IcmsCst is "00" or "20" or "60");
         note = new NfeTxtNote(natOp, finality, referencedKey, emitterCnpj, recDoc, recName,
             recIeInd, recIe, street, number, district, cityCode, cityName, uf, cep,
-            payment, additionalInfo, taxed, items, warnings, moreNotes);
+            payment, !sawPisAliq && sawPisOther, additionalInfo, taxed, items, warnings, moreNotes);
         return true;
     }
 

@@ -176,6 +176,32 @@ public class FiscalEmissionDemoTests : IDisposable
     }
 
     [Fact]
+    public async Task Issue_VendaTributada_PisCofinsOutras_SaiCst99Zerado()
+    {
+        var result = await _service.IssueAsync(TaxedSaleInput() with { PisCofinsOutras = true });
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.Errors));
+
+        var xml = System.Xml.Linq.XDocument.Parse((await _service.GetXmlAsync(result.Value.Id)).Value);
+        System.Xml.Linq.XNamespace ns = "http://www.portalfiscal.inf.br/nfe";
+
+        // PIS/COFINS como "outras operações": CST 99 com valores zerados.
+        Assert.Equal(2, xml.Descendants(ns + "PISOutr").Count());
+        Assert.All(xml.Descendants(ns + "PISOutr"), p =>
+        {
+            Assert.Equal("99", p.Element(ns + "CST")!.Value);
+            Assert.Equal("0.00", p.Element(ns + "vPIS")!.Value);
+        });
+        Assert.Empty(xml.Descendants(ns + "PISAliq"));
+
+        var tot = xml.Descendants(ns + "ICMSTot").Single();
+        Assert.Equal("0.00", tot.Element(ns + "vPIS")!.Value);
+        Assert.Equal("0.00", tot.Element(ns + "vCOFINS")!.Value);
+        // O ICMS continua destacado normalmente.
+        Assert.Equal("18.00", tot.Element(ns + "vICMS")!.Value);
+    }
+
+    [Fact]
     public async Task Issue_VendaTributada_CstInvalido_Falha()
     {
         var input = TaxedSaleInput() with

@@ -81,6 +81,14 @@ public partial class FiscalViewModel : ViewModelBase
 
     public string[] PaymentMethods { get; } = ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito", "Boleto", "Outros"];
 
+    public const string PisAliquota = "Por alíquota (CST 01)";
+    public const string PisOutras = "Outras operações (CST 99, valores zerados)";
+
+    [ObservableProperty]
+    private string _issuePisCofinsMode = PisAliquota;
+
+    public string[] PisCofinsModes { get; } = [PisAliquota, PisOutras];
+
     [ObservableProperty]
     private string _issueNatOp = "Remessa de material";
 
@@ -372,6 +380,7 @@ public partial class FiscalViewModel : ViewModelBase
             null or 1 => "Dinheiro",
             _ => "Outros"
         };
+        IssuePisCofinsMode = note.UsesPisCofinsOutras ? PisOutras : PisAliquota;
         IssueAdditionalInfo = note.AdditionalInfo ?? string.Empty;
 
         var inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -458,6 +467,7 @@ public partial class FiscalViewModel : ViewModelBase
             RecipientUf: IssueUf,
             RecipientCep: IssueCep,
             AdditionalInfo: IssueAdditionalInfo,
+            PisCofinsOutras: IssuePisCofinsMode == PisOutras,
             Items: items);
 
         var emission = services.GetRequiredService<IFiscalEmissionService>();
@@ -561,6 +571,7 @@ public partial class FiscalViewModel : ViewModelBase
     {
         IssueOperationKind = OperationSemImposto;
         IssuePaymentMethod = "Dinheiro";
+        IssuePisCofinsMode = PisAliquota;
         IssueNatOp = "Remessa de material";
         IssueIsDevolution = false;
         IssueReferencedKey = string.Empty;

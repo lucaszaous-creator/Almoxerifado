@@ -300,6 +300,11 @@
                                   Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                   ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding IssuePaymentMethod}"
                                   Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}" />
+                        <ComboBox materialDesign:HintAssist.Hint="PIS/COFINS" Margin="0,0,0,12"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  ItemsSource="{Binding PisCofinsModes}" SelectedItem="{Binding IssuePisCofinsMode}"
+                                  Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}"
+                                  ToolTip="Por alíquota destaca PIS/COFINS (CST 01) com os percentuais das Configurações. Outras operações (CST 99) sai com valores zerados — apuração fora da nota, como o PMS emite. Confirme com o contador." />
                         <StackPanel Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource InverseBoolToVis}}">
                             <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
                                       IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
