@@ -103,6 +103,7 @@ public partial class MainViewModel : ViewModelBase
     // ---- Monitor de sessão: bloqueio por inatividade e backup automático ----
 
     private DateTime _lastActivity = DateTime.Now;
+    private DateTime _lastUpdateCheck = DateTime.Now;
     private int _sessionTimeoutMinutes;
     private System.Windows.Threading.DispatcherTimer? _monitorTimer;
 
@@ -142,6 +143,15 @@ public partial class MainViewModel : ViewModelBase
         }
 
         await RunAutoBackupIfDueAsync();
+
+        // Re-verifica atualizações a cada 2 horas enquanto nenhuma foi
+        // encontrada: o app fica aberto o dia todo e a checagem única da
+        // abertura perdia releases publicados depois dela.
+        if (AvailableUpdate is null && DateTime.Now - _lastUpdateCheck >= TimeSpan.FromHours(2))
+        {
+            _lastUpdateCheck = DateTime.Now;
+            await CheckForUpdatesAsync();
+        }
     }
 
     private async Task ForceLogoffAsync()
