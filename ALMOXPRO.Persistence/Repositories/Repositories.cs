@@ -445,11 +445,22 @@ public class FiscalDocumentRepository : Repository<FiscalDocument>, IFiscalDocum
         Set.FirstOrDefaultAsync(d => d.AccessKey == accessKey, ct);
 
     public Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query,
-        Domain.Common.FiscalDocumentStatus? status = null, CancellationToken ct = default)
+        Domain.Common.FiscalDocumentStatus? status = null, DateTime? from = null, DateTime? to = null,
+        int? number = null, CancellationToken ct = default)
     {
         var q = Set.AsNoTracking().AsQueryable();
         if (status.HasValue)
             q = q.Where(d => d.Status == status.Value);
+        if (from.HasValue)
+            q = q.Where(d => d.IssuedAt >= from.Value);
+        if (to.HasValue)
+            q = q.Where(d => d.IssuedAt < to.Value.AddDays(1));
+        if (number.HasValue)
+        {
+            // O número da NF-e ocupa as posições 26-34 da chave de acesso.
+            var padded = number.Value.ToString("D9");
+            q = q.Where(d => d.AccessKey.Substring(25, 9) == padded);
+        }
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var s = $"%{query.Search.Trim()}%";
@@ -459,6 +470,11 @@ public class FiscalDocumentRepository : Repository<FiscalDocument>, IFiscalDocum
         }
         return q.OrderByDescending(d => d.IssuedAt).ToPagedResultAsync(query, ct);
     }
+
+    public Task<int> CountAllAsync(CancellationToken ct = default) => Set.CountAsync(ct);
+
+    public Task<List<DateTime>> IssueDatesSinceAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
+        Set.AsNoTracking().Where(d => d.IssuedAt >= cutoffUtc).Select(d => d.IssuedAt).ToListAsync(ct);
 }
 
 public class IssuedNfeRepository : Repository<IssuedNfe>, IIssuedNfeRepository
@@ -468,9 +484,16 @@ public class IssuedNfeRepository : Repository<IssuedNfe>, IIssuedNfeRepository
     public async Task<int> GetLastNumberAsync(int series, CancellationToken ct = default) =>
         await Set.Where(n => n.Series == series).MaxAsync(n => (int?)n.Number, ct) ?? 0;
 
-    public Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, CancellationToken ct = default)
+    public Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, DateTime? from = null, DateTime? to = null,
+        int? number = null, CancellationToken ct = default)
     {
         var q = Set.AsNoTracking().AsQueryable();
+        if (from.HasValue)
+            q = q.Where(n => n.IssuedAt >= from.Value);
+        if (to.HasValue)
+            q = q.Where(n => n.IssuedAt < to.Value.AddDays(1));
+        if (number.HasValue)
+            q = q.Where(n => n.Number == number.Value);
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var s = $"%{query.Search.Trim()}%";
@@ -480,4 +503,9 @@ public class IssuedNfeRepository : Repository<IssuedNfe>, IIssuedNfeRepository
         }
         return q.OrderByDescending(n => n.IssuedAt).ToPagedResultAsync(query, ct);
     }
+
+    public Task<int> CountAllAsync(CancellationToken ct = default) => Set.CountAsync(ct);
+
+    public Task<List<DateTime>> IssueDatesSinceAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
+        Set.AsNoTracking().Where(n => n.IssuedAt >= cutoffUtc).Select(n => n.IssuedAt).ToListAsync(ct);
 }

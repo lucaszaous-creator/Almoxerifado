@@ -104,6 +104,7 @@ public partial class MainViewModel : ViewModelBase
 
     private DateTime _lastActivity = DateTime.Now;
     private DateTime _lastUpdateCheck = DateTime.Now;
+    private DateTime _lastFiscalSync = DateTime.MinValue;
     private int _sessionTimeoutMinutes;
     private System.Windows.Threading.DispatcherTimer? _monitorTimer;
 
@@ -151,6 +152,45 @@ public partial class MainViewModel : ViewModelBase
         {
             _lastUpdateCheck = DateTime.Now;
             await CheckForUpdatesAsync();
+        }
+
+        await RunAutoFiscalSyncIfDueAsync();
+    }
+
+    /// <summary>
+    /// Sincronização DF-e em segundo plano (como o NFeMail faz no servidor):
+    /// a cada 65 minutos, respeitando o intervalo mínimo que a SEFAZ exige
+    /// (o guard do cStat 656 no serviço bloqueia qualquer excesso). Silenciosa —
+    /// falhas ficam no log e a tela Notas Fiscais mostra o resultado ao abrir.
+    /// </summary>
+    private async Task RunAutoFiscalSyncIfDueAsync()
+    {
+        if (DateTime.Now - _lastFiscalSync < TimeSpan.FromMinutes(65))
+            return;
+        _lastFiscalSync = DateTime.Now;
+
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var settings = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+            if (await settings.GetAsync(Domain.Entities.Configuration.SettingKeys.FiscalAutoSync) == "false")
+                return;
+            // Sem CNPJ configurado (e fora do modo demo) não há o que sincronizar.
+            var demo = await settings.GetAsync(Domain.Entities.Configuration.SettingKeys.FiscalDemoMode) == "true";
+            var cnpj = await settings.GetAsync(Domain.Entities.Configuration.SettingKeys.FiscalCnpj);
+            if (!demo && string.IsNullOrWhiteSpace(cnpj))
+                return;
+
+            var fiscal = scope.ServiceProvider.GetRequiredService<IFiscalService>();
+            var result = await fiscal.SyncAsync();
+            if (result.IsSuccess && result.Value.NewDocuments > 0)
+                Serilog.Log.Information("Sincronização automática DF-e: {Novas} nota(s) nova(s)",
+                    result.Value.NewDocuments);
+        }
+        catch (Exception ex)
+        {
+            // Nunca interrompe o uso; o guard do serviço já protege contra excesso.
+            Serilog.Log.Warning(ex, "Falha na sincronização automática DF-e");
         }
     }
 

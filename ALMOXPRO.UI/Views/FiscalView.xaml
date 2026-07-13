@@ -3,7 +3,81 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <Grid>
-        <TabControl materialDesign:ColorZoneAssist.Mode="PrimaryMid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Painel de resumo (estilo NFeMail): cards + entrada × saída dos últimos 5 dias -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="1.7*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Notas armazenadas" FontSize="12" Opacity="0.7" />
+                    <TextBlock Text="{Binding SummaryTotal}" FontSize="26" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Recebidas no mês" FontSize="12" Opacity="0.7" />
+                    <TextBlock Text="{Binding SummaryReceivedMonth}" FontSize="26" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Emitidas no mês" FontSize="12" Opacity="0.7" />
+                    <TextBlock Text="{Binding SummaryIssuedMonth}" FontSize="26" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SummaryIssuedMonthValue, StringFormat=C2}" FontSize="11" Opacity="0.7" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="6" Background="{DynamicResource MaterialDesignPaper}" CornerRadius="4" Padding="14,8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Últimos 5 dias" FontSize="12" Opacity="0.7" />
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Rectangle Width="10" Height="10" Fill="#9E9E9E" RadiusX="2" RadiusY="2" VerticalAlignment="Center" />
+                        <TextBlock Text="Recebidas" FontSize="10" Margin="4,0,12,0" Opacity="0.7" VerticalAlignment="Center" />
+                        <Rectangle Width="10" Height="10" Fill="#1E63C9" RadiusX="2" RadiusY="2" VerticalAlignment="Center" />
+                        <TextBlock Text="Emitidas" FontSize="10" Margin="4,0,0,0" Opacity="0.7" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{Binding SummaryDays}" HorizontalAlignment="Center">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="8,0" HorizontalAlignment="Center">
+                                    <Grid Height="96">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                                            <StackPanel Margin="2,0" VerticalAlignment="Bottom">
+                                                <TextBlock Text="{Binding Received}" FontSize="10" HorizontalAlignment="Center" />
+                                                <Rectangle Width="14" Height="{Binding ReceivedBar}" Fill="#9E9E9E" RadiusX="2" RadiusY="2" />
+                                            </StackPanel>
+                                            <StackPanel Margin="2,0" VerticalAlignment="Bottom">
+                                                <TextBlock Text="{Binding Issued}" FontSize="10" HorizontalAlignment="Center" />
+                                                <Rectangle Width="14" Height="{Binding IssuedBar}" Fill="#1E63C9" RadiusX="2" RadiusY="2" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="{Binding Label}" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <TabControl Grid.Row="1" materialDesign:ColorZoneAssist.Mode="PrimaryMid">
             <!-- ===== Notas recebidas (Distribuição DF-e) ===== -->
             <TabItem Header="RECEBIDAS">
                 <DockPanel Margin="0,12,0,0">
@@ -19,8 +93,21 @@
                         <ComboBox Width="130" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Situação"
                                   Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                   ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" />
+                        <DatePicker Width="110" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Emissão de"
+                                    SelectedDate="{Binding FilterFrom}" VerticalAlignment="Center" />
+                        <DatePicker Width="110" Margin="8,0,0,0" materialDesign:HintAssist.Hint="até"
+                                    SelectedDate="{Binding FilterTo}" VerticalAlignment="Center" />
+                        <TextBox Width="90" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Número"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding FilterNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Número da NF-e (extraído da chave de acesso)">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchDocumentsCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
                         <Button Margin="8,0,0,0" Command="{Binding SearchDocumentsCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                ToolTip="Buscar com os filtros">
                             <materialDesign:PackIcon Kind="Magnify" />
                         </Button>
 
@@ -38,6 +125,14 @@
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FilePdfBox" VerticalAlignment="Center" />
                                 <TextBlock Text="DANFE" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding ExportReceivedXmlZipCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                ToolTip="Baixar em ZIP os XMLs de todas as notas dos filtros atuais (máx. 1000)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FolderZip" VerticalAlignment="Center" />
+                                <TextBlock Text="EXPORTAR ZIP" Margin="6,0,0,0" />
                             </StackPanel>
                         </Button>
                         <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding SaveReceivedXmlCommand}"
@@ -130,8 +225,20 @@
                                 <KeyBinding Key="Enter" Command="{Binding SearchIssuedCommand}" />
                             </TextBox.InputBindings>
                         </TextBox>
+                        <DatePicker Width="110" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Emissão de"
+                                    SelectedDate="{Binding IssuedFilterFrom}" VerticalAlignment="Center" />
+                        <DatePicker Width="110" Margin="8,0,0,0" materialDesign:HintAssist.Hint="até"
+                                    SelectedDate="{Binding IssuedFilterTo}" VerticalAlignment="Center" />
+                        <TextBox Width="90" Margin="8,0,0,0" materialDesign:HintAssist.Hint="Número"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Text="{Binding IssuedFilterNumber, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchIssuedCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
                         <Button Margin="8,0,0,0" Command="{Binding SearchIssuedCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center">
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                ToolTip="Buscar com os filtros">
                             <materialDesign:PackIcon Kind="Magnify" />
                         </Button>
 
@@ -157,6 +264,14 @@
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Xml" VerticalAlignment="Center" />
                                 <TextBlock Text="XML" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding ExportIssuedXmlZipCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                ToolTip="Baixar em ZIP os XMLs de todas as notas dos filtros atuais (máx. 1000)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FolderZip" VerticalAlignment="Center" />
+                                <TextBlock Text="EXPORTAR ZIP" Margin="6,0,0,0" />
                             </StackPanel>
                         </Button>
                         <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenIssuedDanfeCommand}"
@@ -207,7 +322,7 @@
         </TabControl>
 
         <!-- Painel de recusa (Operação não Realizada) -->
-        <Border HorizontalAlignment="Right" Width="440"
+        <Border Grid.RowSpan="2" HorizontalAlignment="Right" Width="440"
                 Background="{DynamicResource MaterialDesignPaper}"
                 BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
                 Visibility="{Binding IsRefuseOpen, Converter={StaticResource BoolToVis}}"
@@ -236,7 +351,7 @@
         </Border>
 
         <!-- Painel de cancelamento da NF-e emitida -->
-        <Border HorizontalAlignment="Right" Width="440"
+        <Border Grid.RowSpan="2" HorizontalAlignment="Right" Width="440"
                 Background="{DynamicResource MaterialDesignPaper}"
                 BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
                 Visibility="{Binding IsCancelIssuedOpen, Converter={StaticResource BoolToVis}}"
@@ -264,15 +379,13 @@
             </DockPanel>
         </Border>
 
-        <!-- Painel de emissão de NF-e -->
-        <Border HorizontalAlignment="Right" Width="680"
-                Background="{DynamicResource MaterialDesignPaper}"
-                BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+        <!-- Editor de emissão de NF-e em tela inteira (estilo NFeMail) -->
+        <Border Grid.RowSpan="2" Background="{DynamicResource MaterialDesignPaper}"
                 Visibility="{Binding IsIssueOpen, Converter={StaticResource BoolToVis}}"
                 materialDesign:ElevationAssist.Elevation="Dp8">
-            <DockPanel Margin="20">
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False">
-                    <TextBlock DockPanel.Dock="Left" Text="Emitir NF-e" FontSize="18" FontWeight="SemiBold"
+            <DockPanel Margin="24,16">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4" LastChildFill="False">
+                    <TextBlock DockPanel.Dock="Left" Text="Emitir NF-e" FontSize="20" FontWeight="SemiBold"
                                VerticalAlignment="Center" />
                     <Button DockPanel.Dock="Right" Command="{Binding ImportTxtCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
@@ -285,128 +398,162 @@
                 </DockPanel>
                 <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="11"
                            Foreground="{DynamicResource MaterialDesignBodyLight}"
-                           Text="Venda tributada: informe o CST de ICMS por item (00 integral, 20 base reduzida, 60 ST já retido nas bebidas, 40/41 isento) — PIS/COFINS saem pelas alíquotas das Configurações. Remessas/devoluções saem sem destaque (CST 41/CSOSN 400). Numeração e chave são automáticas." />
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                    <Button Content="VOLTAR" Style="{StaticResource MaterialDesignFlatButton}"
-                            Command="{Binding CloseIssueFormCommand}" Margin="0,0,8,0" />
-                    <Button Command="{Binding ConfirmIssueCommand}">
+                           Text="Venda tributada: informe o CST de ICMS por item (00 integral, 20 base reduzida, 60 ST já retido nas bebidas, 40/41 isento). Remessas/devoluções saem sem destaque. Numeração e chave são automáticas. Use PRÉ-VISUALIZAR DANFE para conferir antes de enviar." />
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0" LastChildFill="False">
+                    <Button DockPanel.Dock="Left" Command="{Binding PreviewIssueDanfeCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Gera um PDF de conferência da DANFE — nada é enviado à SEFAZ">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileFind" VerticalAlignment="Center" />
+                            <TextBlock Text="PRÉ-VISUALIZAR DANFE" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <Button DockPanel.Dock="Right" Command="{Binding ConfirmIssueCommand}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="CloudUpload" VerticalAlignment="Center" />
                             <TextBlock Text="ASSINAR E ENVIAR À SEFAZ" Margin="6,0,0,0" />
                         </StackPanel>
                     </Button>
-                </StackPanel>
+                    <Button DockPanel.Dock="Right" Content="VOLTAR" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding CloseIssueFormCommand}" Margin="0,0,8,0" />
+                </DockPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="0,0,8,0">
-                        <ComboBox materialDesign:HintAssist.Hint="Tipo de operação *" Margin="0,0,0,12"
-                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                  ItemsSource="{Binding OperationKinds}" SelectedItem="{Binding IssueOperationKind}"
-                                  ToolTip="Venda tributada destaca ICMS por item (CST) e PIS/COFINS pelas alíquotas das Configurações" />
-                        <TextBox materialDesign:HintAssist.Hint="Natureza da operação *"
-                                 Text="{Binding IssueNatOp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
-                                 ToolTip="Ex.: Venda de mercadoria, Remessa de material, Devolução de mercadoria" />
-                        <ComboBox materialDesign:HintAssist.Hint="Meio de pagamento *" Margin="0,0,0,12"
-                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                  ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding IssuePaymentMethod}"
-                                  Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}" />
-                        <ComboBox materialDesign:HintAssist.Hint="PIS/COFINS" Margin="0,0,0,12"
-                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                  ItemsSource="{Binding PisCofinsModes}" SelectedItem="{Binding IssuePisCofinsMode}"
-                                  Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}"
-                                  ToolTip="Por alíquota destaca PIS/COFINS (CST 01) com os percentuais das Configurações. Outras operações (CST 99) sai com valores zerados — apuração fora da nota, como o PMS emite. Confirme com o contador." />
-                        <StackPanel Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource InverseBoolToVis}}">
-                            <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
-                                      IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
-                            <TextBox materialDesign:HintAssist.Hint="Chave de acesso da NF-e de origem (44 dígitos) *"
-                                     Text="{Binding IssueReferencedKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
-                                     Visibility="{Binding IssueIsDevolution, Converter={StaticResource BoolToVis}}" />
-                        </StackPanel>
+                    <Grid Margin="0,0,8,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <TextBlock Text="Destinatário" FontWeight="SemiBold" Margin="0,4,0,8" />
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="CNPJ ou CPF *"
-                                     Text="{Binding IssueRecipientDoc, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Razão social / nome *"
-                                     Text="{Binding IssueRecipientName, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Situação de IE"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                      ItemsSource="{Binding IeOptions}" SelectedItem="{Binding IssueRecipientIeOption}" />
-                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Inscrição Estadual (se contribuinte)"
-                                     Text="{Binding IssueRecipientIe, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,12">
+                        <!-- Operação e destinatário lado a lado -->
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="1.4*" />
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Logradouro *"
-                                     Text="{Binding IssueStreet, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Número *"
-                                     Text="{Binding IssueNumber, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="140" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Bairro *"
-                                     Text="{Binding IssueDistrict, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="CEP *"
-                                     Text="{Binding IssueCep, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="90" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Município *"
-                                     Text="{Binding IssueCityName, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Cód. IBGE *"
-                                     Text="{Binding IssueCityCode, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Código IBGE do município, 7 dígitos (ex.: 3550308 = São Paulo)" />
-                            <ComboBox Grid.Column="4" materialDesign:HintAssist.Hint="UF *"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                      ItemsSource="{Binding Ufs}" SelectedItem="{Binding IssueUf}" />
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Operação" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <ComboBox materialDesign:HintAssist.Hint="Tipo de operação *" Margin="0,0,0,12"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          ItemsSource="{Binding OperationKinds}" SelectedItem="{Binding IssueOperationKind}" />
+                                <TextBox materialDesign:HintAssist.Hint="Natureza da operação *"
+                                         Text="{Binding IssueNatOp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
+                                         ToolTip="Ex.: Venda de mercadoria, Remessa de material, Devolução de mercadoria" />
+                                <ComboBox materialDesign:HintAssist.Hint="Meio de pagamento *" Margin="0,0,0,12"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          ItemsSource="{Binding PaymentMethods}" SelectedItem="{Binding IssuePaymentMethod}"
+                                          Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}" />
+                                <ComboBox materialDesign:HintAssist.Hint="PIS/COFINS" Margin="0,0,0,12"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          ItemsSource="{Binding PisCofinsModes}" SelectedItem="{Binding IssuePisCofinsMode}"
+                                          Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource BoolToVis}}"
+                                          ToolTip="Por alíquota destaca PIS/COFINS (CST 01). Outras operações (CST 99) sai zerado — apuração fora da nota, como o PMS emite." />
+                                <StackPanel Visibility="{Binding IsTaxedSaleSelected, Converter={StaticResource InverseBoolToVis}}">
+                                    <CheckBox Content="Devolução (finalidade 4, referencia a NF-e de origem)"
+                                              IsChecked="{Binding IssueIsDevolution}" Margin="0,0,0,8" />
+                                    <TextBox materialDesign:HintAssist.Hint="Chave de acesso da NF-e de origem (44 dígitos) *"
+                                             Text="{Binding IssueReferencedKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"
+                                             Visibility="{Binding IssueIsDevolution, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                                <TextBox materialDesign:HintAssist.Hint="Informações complementares (opcional)"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Text="{Binding IssueAdditionalInfo, UpdateSourceTrigger=PropertyChanged}"
+                                         TextWrapping="Wrap" AcceptsReturn="True" MinHeight="84" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Destinatário" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="CNPJ ou CPF *"
+                                             Text="{Binding IssueRecipientDoc, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Razão social / nome *"
+                                             Text="{Binding IssueRecipientName, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Situação de IE"
+                                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                              ItemsSource="{Binding IeOptions}" SelectedItem="{Binding IssueRecipientIeOption}" />
+                                    <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Inscrição Estadual (se contribuinte)"
+                                             Text="{Binding IssueRecipientIe, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Logradouro *"
+                                             Text="{Binding IssueStreet, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Número *"
+                                             Text="{Binding IssueNumber, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="4" materialDesign:HintAssist.Hint="CEP *"
+                                             Text="{Binding IssueCep, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Bairro *"
+                                             Text="{Binding IssueDistrict, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Município *"
+                                             Text="{Binding IssueCityName, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="110" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Cód. IBGE do município *"
+                                             Text="{Binding IssueCityCode, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="7 dígitos (ex.: 3302403 = Macaé)" />
+                                    <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="UF *"
+                                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                              ItemsSource="{Binding Ufs}" SelectedItem="{Binding IssueUf}" />
+                                </Grid>
+                            </StackPanel>
                         </Grid>
 
-                        <DockPanel Margin="0,4,0,8" LastChildFill="False">
+                        <!-- Itens em largura total -->
+                        <DockPanel Grid.Row="1" Margin="0,4,0,8" LastChildFill="False">
                             <TextBlock DockPanel.Dock="Left" Text="Itens da nota" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <Button DockPanel.Dock="Right" Style="{StaticResource MaterialDesignOutlinedButton}"
                                     Command="{Binding AddIssueItemCommand}" ToolTip="Adicionar item">
-                                <materialDesign:PackIcon Kind="Plus" />
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                                    <TextBlock Text="NOVO ITEM" Margin="6,0,0,0" />
+                                </StackPanel>
                             </Button>
                         </DockPanel>
-                        <DataGrid ItemsSource="{Binding IssueItems}" AutoGenerateColumns="False"
-                                  CanUserAddRows="False" MinHeight="120" MaxHeight="240" Margin="0,0,0,12">
+                        <DataGrid Grid.Row="2" ItemsSource="{Binding IssueItems}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" MinHeight="220" MaxHeight="420" Margin="0,0,0,12">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Código" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="Código" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="80" />
                                 <DataGridTextColumn Header="Descrição *" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                                <DataGridTextColumn Header="NCM *" Binding="{Binding Ncm, UpdateSourceTrigger=PropertyChanged}" Width="80"
-                                                    />
-                                <DataGridTextColumn Header="CFOP *" Binding="{Binding Cfop, UpdateSourceTrigger=PropertyChanged}" Width="60" />
-                                <DataGridTextColumn Header="Un. *" Binding="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" Width="50" />
-                                <DataGridTextColumn Header="Qtde *" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="70" />
-                                <DataGridTextColumn Header="Vl. unit. *" Binding="{Binding UnitValue, UpdateSourceTrigger=PropertyChanged}" Width="80" />
-                                <DataGridTextColumn Header="CST" Binding="{Binding IcmsCst, UpdateSourceTrigger=PropertyChanged}" Width="50" />
-                                <DataGridTextColumn Header="ICMS %" Binding="{Binding IcmsRate, UpdateSourceTrigger=PropertyChanged}" Width="60" />
-                                <DataGridTextColumn Header="Red.BC %" Binding="{Binding IcmsBaseReduction, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="NCM *" Binding="{Binding Ncm, UpdateSourceTrigger=PropertyChanged}" Width="90" />
+                                <DataGridTextColumn Header="CFOP *" Binding="{Binding Cfop, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="Un. *" Binding="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                                <DataGridTextColumn Header="Qtde *" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                                <DataGridTextColumn Header="Vl. unit. *" Binding="{Binding UnitValue, UpdateSourceTrigger=PropertyChanged}" Width="90" />
+                                <DataGridTextColumn Header="CST" Binding="{Binding IcmsCst, UpdateSourceTrigger=PropertyChanged}" Width="60" />
+                                <DataGridTextColumn Header="ICMS %" Binding="{Binding IcmsRate, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                                <DataGridTextColumn Header="Red.BC %" Binding="{Binding IcmsBaseReduction, UpdateSourceTrigger=PropertyChanged}" Width="80" />
                                 <DataGridTemplateColumn Width="46">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -420,12 +567,7 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
-
-                        <TextBox materialDesign:HintAssist.Hint="Informações complementares (opcional)"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Text="{Binding IssueAdditionalInfo, UpdateSourceTrigger=PropertyChanged}"
-                                 TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60" />
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
             </DockPanel>
         </Border>

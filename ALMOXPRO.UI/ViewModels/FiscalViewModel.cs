@@ -151,6 +151,40 @@ public partial class FiscalViewModel : ViewModelBase
     [ObservableProperty]
     private string _cancelIssuedJustification = string.Empty;
 
+    // Filtros de consulta avançada (estilo NFeMail)
+    [ObservableProperty]
+    private DateTime? _filterFrom;
+
+    [ObservableProperty]
+    private DateTime? _filterTo;
+
+    [ObservableProperty]
+    private string _filterNumber = string.Empty;
+
+    [ObservableProperty]
+    private DateTime? _issuedFilterFrom;
+
+    [ObservableProperty]
+    private DateTime? _issuedFilterTo;
+
+    [ObservableProperty]
+    private string _issuedFilterNumber = string.Empty;
+
+    // Painel de resumo (cards + gráfico dos últimos 5 dias)
+    [ObservableProperty]
+    private int _summaryTotal;
+
+    [ObservableProperty]
+    private int _summaryReceivedMonth;
+
+    [ObservableProperty]
+    private int _summaryIssuedMonth;
+
+    [ObservableProperty]
+    private decimal _summaryIssuedMonthValue;
+
+    public ObservableCollection<FiscalDaySummaryRow> SummaryDays { get; } = [];
+
     public override string Title => "Notas Fiscais";
 
     public FiscalViewModel(IServiceScopeFactory scopeFactory, IDialogService dialog, ISessionService session)
@@ -163,6 +197,7 @@ public partial class FiscalViewModel : ViewModelBase
     {
         await LoadIntoAsync(services);
         await LoadIssuedIntoAsync(services);
+        await LoadSummaryAsync(services);
     });
 
     [RelayCommand]
@@ -458,39 +493,7 @@ public partial class FiscalViewModel : ViewModelBase
                 "A nota será assinada e enviada à SEFAZ.", "Emitir NF-e"))
             return;
 
-        var input = new IssueNfeInput(
-            NatureOfOperation: IssueNatOp,
-            IsTaxedSale: IsTaxedSaleSelected,
-            PaymentMethod: IssuePaymentMethod switch
-            {
-                "PIX" => 17,
-                "Cartão de crédito" => 3,
-                "Cartão de débito" => 4,
-                "Boleto" => 15,
-                "Outros" => 99,
-                _ => 1
-            },
-            IsDevolution: IssueIsDevolution,
-            ReferencedAccessKey: IssueIsDevolution ? IssueReferencedKey : null,
-            RecipientCnpjCpf: IssueRecipientDoc,
-            RecipientName: IssueRecipientName,
-            RecipientIeIndicator: IssueRecipientIeOption switch
-            {
-                "Contribuinte ICMS" => 1,
-                "Contribuinte isento" => 2,
-                _ => 9
-            },
-            RecipientIe: IssueRecipientIe,
-            RecipientStreet: IssueStreet,
-            RecipientNumber: IssueNumber,
-            RecipientDistrict: IssueDistrict,
-            RecipientCityCode: IssueCityCode,
-            RecipientCityName: IssueCityName,
-            RecipientUf: IssueUf,
-            RecipientCep: IssueCep,
-            AdditionalInfo: IssueAdditionalInfo,
-            PisCofinsOutras: IssuePisCofinsMode == PisOutras,
-            Items: items);
+        var input = BuildIssueInput(items);
 
         var emission = services.GetRequiredService<IFiscalEmissionService>();
         var result = await emission.IssueAsync(input);
@@ -612,11 +615,149 @@ public partial class FiscalViewModel : ViewModelBase
         IssueItems.Clear();
     }
 
+    private IssueNfeInput BuildIssueInput(List<IssueNfeItemInput> items) => new(
+        NatureOfOperation: IssueNatOp,
+        IsTaxedSale: IsTaxedSaleSelected,
+        PaymentMethod: IssuePaymentMethod switch
+        {
+            "PIX" => 17,
+            "Cartão de crédito" => 3,
+            "Cartão de débito" => 4,
+            "Boleto" => 15,
+            "Outros" => 99,
+            _ => 1
+        },
+        IsDevolution: IssueIsDevolution,
+        ReferencedAccessKey: IssueIsDevolution ? IssueReferencedKey : null,
+        RecipientCnpjCpf: IssueRecipientDoc,
+        RecipientName: IssueRecipientName,
+        RecipientIeIndicator: IssueRecipientIeOption switch
+        {
+            "Contribuinte ICMS" => 1,
+            "Contribuinte isento" => 2,
+            _ => 9
+        },
+        RecipientIe: IssueRecipientIe,
+        RecipientStreet: IssueStreet,
+        RecipientNumber: IssueNumber,
+        RecipientDistrict: IssueDistrict,
+        RecipientCityCode: IssueCityCode,
+        RecipientCityName: IssueCityName,
+        RecipientUf: IssueUf,
+        RecipientCep: IssueCep,
+        AdditionalInfo: IssueAdditionalInfo,
+        PisCofinsOutras: IssuePisCofinsMode == PisOutras,
+        Items: items);
+
+    /// <summary>DANFE de conferência do rascunho — nada é enviado à SEFAZ.</summary>
+    [RelayCommand]
+    private Task PreviewIssueDanfeAsync() => RunAsync(async services =>
+    {
+        var items = new List<IssueNfeItemInput>();
+        foreach (var row in IssueItems)
+        {
+            if (!row.TryBuild(out var item, out var error))
+            {
+                Dialog.ShowError(error);
+                return;
+            }
+            items.Add(item);
+        }
+
+        var emission = services.GetRequiredService<IFiscalEmissionService>();
+        var result = await emission.PreviewDanfePdfAsync(BuildIssueInput(items));
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        var path = Path.Combine(Path.GetTempPath(), "ALMOXPRO", "Danfe");
+        Directory.CreateDirectory(path);
+        var file = Path.Combine(path, $"preview_{DateTime.Now:yyyyMMddHHmmss}.pdf");
+        await File.WriteAllBytesAsync(file, result.Value);
+        Process.Start(new ProcessStartInfo(file) { UseShellExecute = true });
+    });
+
+    [RelayCommand]
+    private Task ExportReceivedXmlZipAsync() => RunAsync(async services =>
+    {
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var result = await fiscal.ExportXmlZipAsync(CurrentStatusFilter(), FilterFrom, FilterTo,
+            ParseNumber(FilterNumber), Search);
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        var target = Dialog.SaveFile($"notas-recebidas-{DateTime.Now:yyyyMMdd}.zip", "Arquivo ZIP (*.zip)|*.zip");
+        if (target is null)
+            return;
+        await File.WriteAllBytesAsync(target, result.Value);
+        Dialog.Notify("XMLs exportados.");
+    });
+
+    [RelayCommand]
+    private Task ExportIssuedXmlZipAsync() => RunAsync(async services =>
+    {
+        var emission = services.GetRequiredService<IFiscalEmissionService>();
+        var result = await emission.ExportXmlZipAsync(IssuedFilterFrom, IssuedFilterTo,
+            ParseNumber(IssuedFilterNumber), IssuedSearch);
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        var target = Dialog.SaveFile($"notas-emitidas-{DateTime.Now:yyyyMMdd}.zip", "Arquivo ZIP (*.zip)|*.zip");
+        if (target is null)
+            return;
+        await File.WriteAllBytesAsync(target, result.Value);
+        Dialog.Notify("XMLs exportados.");
+    });
+
+    private async Task LoadSummaryAsync(IServiceProvider services)
+    {
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var summary = await fiscal.GetSummaryAsync();
+
+        SummaryTotal = summary.TotalStored;
+        SummaryReceivedMonth = summary.ReceivedThisMonth;
+        SummaryIssuedMonth = summary.IssuedThisMonth;
+        SummaryIssuedMonthValue = summary.IssuedThisMonthValue;
+
+        // Barras normalizadas para a altura máxima do mini gráfico (72px).
+        var max = Math.Max(1, summary.LastDays.Max(d => Math.Max(d.Received, d.Issued)));
+        SummaryDays.Clear();
+        foreach (var day in summary.LastDays)
+            SummaryDays.Add(new FiscalDaySummaryRow(
+                day.Date.ToString("dd/MM"),
+                day.Received,
+                day.Issued,
+                Math.Max(2, 72.0 * day.Received / max),
+                Math.Max(2, 72.0 * day.Issued / max)));
+    }
+
+    private static int? ParseNumber(string value) =>
+        int.TryParse(new string([.. value.Where(char.IsDigit)]), out var n) && n > 0 ? n : null;
+
+    private FiscalDocumentStatus? CurrentStatusFilter() => StatusFilter switch
+    {
+        "Recebida" => FiscalDocumentStatus.Recebida,
+        "Ciência" => FiscalDocumentStatus.Ciencia,
+        "Confirmada" => FiscalDocumentStatus.Confirmada,
+        "Desconhecida" => FiscalDocumentStatus.Desconhecida,
+        "Recusada" => FiscalDocumentStatus.OperacaoNaoRealizada,
+        _ => null
+    };
+
     private async Task LoadIssuedIntoAsync(IServiceProvider services)
     {
         var emission = services.GetRequiredService<IFiscalEmissionService>();
         var result = await emission.SearchAsync(
-            new PagedQuery { Page = IssuedPage, PageSize = 25, Search = IssuedSearch });
+            new PagedQuery { Page = IssuedPage, PageSize = 25, Search = IssuedSearch },
+            IssuedFilterFrom, IssuedFilterTo, ParseNumber(IssuedFilterNumber));
         IssuedTotalPages = result.TotalPages;
         IssuedItems.Clear();
         foreach (var item in result.Items)
@@ -625,22 +766,16 @@ public partial class FiscalViewModel : ViewModelBase
 
     private async Task LoadIntoAsync(IServiceProvider services)
     {
-        FiscalDocumentStatus? status = StatusFilter switch
-        {
-            "Recebida" => FiscalDocumentStatus.Recebida,
-            "Ciência" => FiscalDocumentStatus.Ciencia,
-            "Confirmada" => FiscalDocumentStatus.Confirmada,
-            "Desconhecida" => FiscalDocumentStatus.Desconhecida,
-            "Recusada" => FiscalDocumentStatus.OperacaoNaoRealizada,
-            _ => null
-        };
-
         var fiscal = services.GetRequiredService<IFiscalService>();
         var result = await fiscal.SearchAsync(
-            new PagedQuery { Page = Page, PageSize = 25, Search = Search }, status);
+            new PagedQuery { Page = Page, PageSize = 25, Search = Search }, CurrentStatusFilter(),
+            FilterFrom, FilterTo, ParseNumber(FilterNumber));
         TotalPages = result.TotalPages;
         Items.Clear();
         foreach (var item in result.Items)
             Items.Add(item);
     }
 }
+
+/// <summary>Linha do mini gráfico entrada × saída (alturas já normalizadas em px).</summary>
+public record FiscalDaySummaryRow(string Label, int Received, int Issued, double ReceivedBar, double IssuedBar);
