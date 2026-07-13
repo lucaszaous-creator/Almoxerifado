@@ -35,6 +35,8 @@ public static class SettingKeys
     public const string FiscalCertificateSource = "fiscal.cert_source";
     public const string FiscalCertificateThumbprint = "fiscal.cert_thumbprint";
     public const string FiscalDemoMode = "fiscal.demo_mode";
+    /// <summary>Próximo horário (UTC, ISO 8601) em que a consulta DF-e é permitida — evita o cStat 656 "Consumo Indevido".</summary>
+    public const string FiscalSyncBlockedUntil = "fiscal.sync_blocked_until";
     // Dados do emitente para a emissão de NF-e própria.
     public const string FiscalEmitName = "fiscal.emit_name";
     public const string FiscalEmitIe = "fiscal.emit_ie";
