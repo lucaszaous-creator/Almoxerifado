@@ -82,6 +82,17 @@ public class FiscalService : IFiscalService
             return Result.Failure<FiscalSyncSummary>(configResult.Errors);
         var config = configResult.Value;
 
+        // A SEFAZ pune consultas repetidas em menos de 1 hora quando não há
+        // documentos novos (cStat 656 "Consumo Indevido", bloqueio de 1 hora).
+        // O guard local impede a chamada antes do horário liberado.
+        var blockedRaw = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalSyncBlockedUntil, ct))?.Value;
+        if (DateTime.TryParse(blockedRaw, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal, out var blockedUntil)
+            && DateTime.UtcNow < blockedUntil)
+            return Result.Failure<FiscalSyncSummary>(
+                $"A SEFAZ permite nova consulta apenas 1 hora após a última sem notas novas. " +
+                $"Sincronize novamente a partir de {blockedUntil.ToLocalTime():HH:mm}.");
+
         var ultNsu = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalUltNsu, ct))?.Value ?? "0";
         var newCount = 0;
         var updatedCount = 0;
@@ -94,7 +105,18 @@ public class FiscalService : IFiscalService
 
             // 137 = nenhum documento localizado; 138 = documentos localizados.
             if (result.StatusCode == 137)
+            {
+                // Sem documentos: a SEFAZ só admite nova consulta em 1 hora.
+                await BlockSyncForAsync(TimeSpan.FromMinutes(65), ct);
                 break;
+            }
+            if (result.StatusCode == 656)
+            {
+                await BlockSyncForAsync(TimeSpan.FromMinutes(65), ct);
+                return Result.Failure<FiscalSyncSummary>(
+                    "A SEFAZ bloqueou temporariamente a consulta por excesso de chamadas (cStat 656). " +
+                    "Aguarde cerca de 1 hora e sincronize novamente — o sistema agora respeita esse intervalo automaticamente.");
+            }
             if (result.StatusCode != 138)
                 return Result.Failure<FiscalSyncSummary>(
                     $"SEFAZ retornou {result.StatusCode}: {result.StatusMessage}");
@@ -129,6 +151,13 @@ public class FiscalService : IFiscalService
         _logger.LogInformation("Sincronização DF-e concluída: {New} novas, {Updated} atualizadas, ultNSU {Nsu}",
             newCount, updatedCount, ultNsu);
         return Result.Success(new FiscalSyncSummary(newCount, updatedCount, ultNsu));
+    }
+
+    private async Task BlockSyncForAsync(TimeSpan duration, CancellationToken ct)
+    {
+        await SaveSettingAsync(SettingKeys.FiscalSyncBlockedUntil,
+            DateTime.UtcNow.Add(duration).ToString("O", System.Globalization.CultureInfo.InvariantCulture), ct);
+        await _uow.SaveChangesAsync(ct);
     }
 
     /// <summary>Retorna true quando criou um documento novo; false quando atualizou um existente.</summary>
