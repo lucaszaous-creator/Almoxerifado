@@ -133,6 +133,58 @@ public class FiscalDemoFlowTests : IDisposable
         Assert.Contains("<mod>65</mod>", xml.Value);
     }
 
+    [Fact]
+    public async Task PurgeDemoData_RemoveNotasFicticiasELiberaSincronizacao()
+    {
+        // Notas recebidas de exemplo.
+        await _service.SyncAsync();
+        Assert.Equal(FiscalDemoData.Documents.Count, await _context.FiscalDocuments.CountAsync());
+
+        // Uma nota emitida de demonstração (protocolo fictício) e uma "real".
+        _context.IssuedNfes.Add(new global::ALMOXPRO.Domain.Entities.Fiscal.IssuedNfe
+        {
+            AccessKey = new string('1', 44),
+            Number = 1,
+            Series = 1,
+            Protocol = IssuedNfeDemoXml.DemoProtocol,
+            IssuedAt = DateTime.UtcNow,
+            TotalValue = 10m,
+            Xml = "<nfeProc/>"
+        });
+        _context.IssuedNfes.Add(new global::ALMOXPRO.Domain.Entities.Fiscal.IssuedNfe
+        {
+            AccessKey = new string('2', 44),
+            Number = 2,
+            Series = 1,
+            Protocol = "135260000000009",
+            IssuedAt = DateTime.UtcNow,
+            TotalValue = 20m,
+            IsProduction = true,
+            Xml = "<nfeProc/>"
+        });
+        // Bloqueio de sincronização ativo (cStat 656).
+        _context.AppSettings.Add(new AppSetting
+        {
+            Key = SettingKeys.FiscalSyncBlockedUntil,
+            Value = DateTime.UtcNow.AddHours(1).ToString("O")
+        });
+        _context.SaveChanges();
+
+        var purge = await _service.PurgeDemoDataAsync();
+
+        Assert.True(purge.IsSuccess);
+        Assert.Equal(FiscalDemoData.Documents.Count + 1, purge.Value);
+        // Recebidas de exemplo: todas removidas.
+        Assert.Equal(0, await _context.FiscalDocuments.CountAsync());
+        // Emitidas: a real permanece, a de demonstração some.
+        var restantes = await _context.IssuedNfes.ToListAsync();
+        Assert.Single(restantes);
+        Assert.True(restantes[0].IsProduction);
+        // Bloqueio liberado.
+        var block = await _context.AppSettings.FirstAsync(s => s.Key == SettingKeys.FiscalSyncBlockedUntil);
+        Assert.Equal(string.Empty, block.Value);
+    }
+
     public void Dispose()
     {
         _context.Dispose();

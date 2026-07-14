@@ -25,6 +25,13 @@ public interface IFiscalService
     /// <summary>Sincroniza com a SEFAZ: baixa as notas emitidas contra o CNPJ desde o último NSU.</summary>
     Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Remove as notas fictícias do modo demonstração (recebidas e emitidas) e
+    /// libera o bloqueio de sincronização — usado ao desligar o modo demonstração
+    /// para que o ambiente real assuma limpo. Retorna quantas notas foram removidas.
+    /// </summary>
+    Task<Result<int>> PurgeDemoDataAsync(CancellationToken ct = default);
+
     /// <summary>Envia a manifestação do destinatário e atualiza a situação da nota.</summary>
     Task<Result> ManifestAsync(int documentId, ManifestationType type, string? justification,
         CancellationToken ct = default);
@@ -453,6 +460,34 @@ public class FiscalService : IFiscalService
         await _uow.SaveChangesAsync(ct);
         _logger.LogInformation("Sincronização DEMO: {New} novas, {Updated} atualizadas", newCount, updatedCount);
         return Result.Success(new FiscalSyncSummary(newCount, updatedCount, "demo"));
+    }
+
+    public async Task<Result<int>> PurgeDemoDataAsync(CancellationToken ct = default)
+    {
+        // Notas recebidas de exemplo: identificadas pelas chaves fixas do demo.
+        var demoKeys = FiscalDemoData.Documents.Select(d => d.AccessKey).ToList();
+        var demoReceived = await _uow.FiscalDocuments.FindAsync(d => demoKeys.Contains(d.AccessKey), ct);
+        foreach (var doc in demoReceived)
+            _uow.FiscalDocuments.Remove(doc);
+
+        // Notas emitidas de exemplo: o protocolo fictício as distingue das reais
+        // (inclusive das de homologação, que têm protocolo real da SEFAZ).
+        var demoIssued = await _uow.IssuedNfes.FindAsync(
+            n => n.Protocol == IssuedNfeDemoXml.DemoProtocol, ct);
+        foreach (var nfe in demoIssued)
+            _uow.IssuedNfes.Remove(nfe);
+
+        // Libera o guard de 1 hora (cStat 656) para permitir sincronizar já.
+        var block = await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalSyncBlockedUntil, ct);
+        if (block is not null)
+            block.Value = string.Empty;
+
+        await _uow.SaveChangesAsync(ct);
+
+        var removed = demoReceived.Count + demoIssued.Count;
+        if (removed > 0)
+            _logger.LogInformation("Modo demonstração desligado: {Count} nota(s) fictícia(s) removida(s)", removed);
+        return Result.Success(removed);
     }
 
     private Task<Result<FiscalConfig>> LoadConfigAsync(CancellationToken ct) =>

@@ -227,6 +227,8 @@ public partial class SettingsViewModel : ViewModelBase
         await settings.SetAsync(SettingKeys.FiscalDemoMode, FiscalDemoMode ? "true" : "false");
         await settings.SetAsync(SettingKeys.FiscalAutoSync, FiscalAutoSync ? "true" : "false");
 
+        var fiscal = services.GetRequiredService<IFiscalService>();
+
         // No modo demonstração não é preciso certificado nem CNPJ/UF válidos.
         if (FiscalDemoMode)
         {
@@ -234,7 +236,11 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        var fiscal = services.GetRequiredService<IFiscalService>();
+        // Saindo do modo demonstração: remove as notas fictícias que ficaram
+        // gravadas e libera a sincronização, para que a SEFAZ real assuma limpo.
+        var purge = await fiscal.PurgeDemoDataAsync();
+        var removed = purge.IsSuccess ? purge.Value : 0;
+
         var input = new Application.Interfaces.FiscalConfigInput(
             UseWindowsStore: FiscalUseWindowsStore,
             Thumbprint: SelectedCertificate?.Thumbprint,
@@ -255,7 +261,13 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalCertPassword = string.Empty;
         FiscalCertFileName = string.Empty;
         FiscalCertStatus = $"Certificado: {result.Value.Subject}\nVálido até {result.Value.NotAfter:dd/MM/yyyy}";
-        Dialog.Notify("Configuração fiscal salva. Use SINCRONIZAR SEFAZ na tela Notas Fiscais.");
+
+        var demoNote = removed > 0
+            ? $" {removed} nota(s) de demonstração foram removidas."
+            : string.Empty;
+        Dialog.Notify(
+            $"Configuração fiscal salva ({(FiscalProduction ? "produção" : "homologação")}).{demoNote} " +
+            "Use SINCRONIZAR SEFAZ na tela Notas Fiscais.");
     });
 
     /// <summary>Grava os dados do emitente usados na emissão de NF-e própria.</summary>
