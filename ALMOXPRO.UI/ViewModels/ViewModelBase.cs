@@ -49,10 +49,18 @@ public abstract partial class ViewModelBase : ObservableObject
                 "O estoque foi alterado por outro usuário neste instante.\n" +
                 "Atualize a tela e repita a operação.");
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            Log.Error(ex, "Erro ao salvar alterações no ViewModel {ViewModel}", GetType().Name);
+            Dialog.ShowError(Persistence.DbErrorTranslator.ToFriendlyMessage(ex));
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Erro na operação do ViewModel {ViewModel}", GetType().Name);
-            Dialog.ShowError($"Ocorreu um erro inesperado:\n{ex.Message}");
+            var message = Persistence.DbErrorTranslator.IsDatabaseError(ex)
+                ? Persistence.DbErrorTranslator.ToFriendlyMessage(ex)
+                : ex.Message;
+            Dialog.ShowError($"Ocorreu um erro inesperado:\n{message}");
         }
         finally
         {

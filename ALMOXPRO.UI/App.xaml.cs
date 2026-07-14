@@ -188,8 +188,11 @@ public partial class App : System.Windows.Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error(e.Exception, "Erro não tratado na interface");
+        var message = Persistence.DbErrorTranslator.IsDatabaseError(e.Exception)
+            ? Persistence.DbErrorTranslator.ToFriendlyMessage(e.Exception)
+            : e.Exception.Message;
         MessageBox.Show(
-            $"Ocorreu um erro inesperado:\n\n{e.Exception.Message}",
+            $"Ocorreu um erro inesperado:\n\n{message}",
             "ALMOX PRO", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
