@@ -441,8 +441,20 @@ public class FiscalDocumentRepository : Repository<FiscalDocument>, IFiscalDocum
 {
     public FiscalDocumentRepository(AlmoxProDbContext context) : base(context) { }
 
-    public Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default) =>
-        Set.FirstOrDefaultAsync(d => d.AccessKey == accessKey, ct);
+    public Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default)
+    {
+        // Durante a sincronização DF-e, a mesma chave pode chegar duas vezes no mesmo
+        // lote (o resumo resNFe e, em seguida, o procNFe completo), e o SaveChanges só
+        // ocorre ao fim do laço. Consultar apenas o banco não enxerga o documento recém
+        // adicionado e ainda não persistido, o que levaria a um segundo INSERT e à
+        // violação do índice único de AccessKey. Por isso verificamos primeiro as
+        // entidades já rastreadas na memória.
+        var tracked = Set.Local.FirstOrDefault(d => d.AccessKey == accessKey);
+        if (tracked is not null)
+            return Task.FromResult<FiscalDocument?>(tracked);
+
+        return Set.FirstOrDefaultAsync(d => d.AccessKey == accessKey, ct);
+    }
 
     public Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query,
         Domain.Common.FiscalDocumentStatus? status = null, DateTime? from = null, DateTime? to = null,
