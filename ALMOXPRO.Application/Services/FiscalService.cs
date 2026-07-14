@@ -165,8 +165,9 @@ public class FiscalService : IFiscalService
                 System.Globalization.DateTimeStyles.AdjustToUniversal, out var blockedUntil)
             && DateTime.UtcNow < blockedUntil)
             return Result.Failure<FiscalSyncSummary>(
-                $"A SEFAZ permite nova consulta apenas 1 hora após a última sem notas novas. " +
-                $"Sincronize novamente a partir de {blockedUntil.ToLocalTime():HH:mm}.");
+                $"A consulta à SEFAZ está em espera para evitar novo bloqueio por excesso de chamadas " +
+                $"(cStat 656). Nova tentativa liberada a partir de {blockedUntil.ToLocalTime():dd/MM HH:mm}. " +
+                $"Não insista antes disso: cada tentativa cedo demais reinicia a penalidade da SEFAZ.");
 
         var ultNsu = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalUltNsu, ct))?.Value ?? "0";
         var newCount = 0;
@@ -181,20 +182,32 @@ public class FiscalService : IFiscalService
             // 137 = nenhum documento localizado; 138 = documentos localizados.
             if (result.StatusCode == 137)
             {
-                // Sem documentos: a SEFAZ só admite nova consulta em 1 hora.
+                // Resposta normal "sem novidades": intervalo padrão de 1h e zera a
+                // escalada do 656 (não houve consumo indevido nesta consulta).
+                await ResetBackoffAsync(ct);
                 await BlockSyncForAsync(TimeSpan.FromMinutes(65), ct);
                 break;
             }
             if (result.StatusCode == 656)
             {
-                await BlockSyncForAsync(TimeSpan.FromMinutes(65), ct);
+                // "Consumo Indevido": penalidade por CNPJ que pode durar horas e é
+                // renovada a cada tentativa precoce. Recua exponencialmente para sair
+                // de vez do bloqueio em vez de reincidir a cada hora.
+                var wait = await EscalateBackoffAsync(ct);
+                var until = DateTime.UtcNow.Add(wait).ToLocalTime();
                 return Result.Failure<FiscalSyncSummary>(
-                    "A SEFAZ bloqueou temporariamente a consulta por excesso de chamadas (cStat 656). " +
-                    "Aguarde cerca de 1 hora e sincronize novamente — o sistema agora respeita esse intervalo automaticamente.");
+                    $"A SEFAZ bloqueou a consulta por excesso de chamadas (cStat 656). Este bloqueio é " +
+                    $"por CNPJ e pode durar horas — inclusive se outro sistema (ex.: NFeMail) estiver " +
+                    $"baixando as notas do mesmo CNPJ ao mesmo tempo. O ALMOX PRO só tentará de novo a " +
+                    $"partir de {until:dd/MM HH:mm}. Mantenha apenas um sistema baixando as notas e não " +
+                    $"clique em sincronizar nesse meio-tempo.");
             }
             if (result.StatusCode != 138)
                 return Result.Failure<FiscalSyncSummary>(
                     $"SEFAZ retornou {result.StatusCode}: {result.StatusMessage}");
+
+            // Consulta bem-sucedida: zera qualquer penalidade acumulada de 656.
+            await ResetBackoffAsync(ct);
 
             foreach (var doc in result.Documents)
             {
@@ -240,6 +253,36 @@ public class FiscalService : IFiscalService
         _logger.LogInformation("Ressincronização completa: NSU e bloqueio de intervalo zerados.");
 
         return await SyncAsync(ct);
+    }
+
+    /// <summary>Zera a escalada de recuo após uma consulta bem-sucedida ou sem consumo indevido.</summary>
+    private async Task ResetBackoffAsync(CancellationToken ct)
+    {
+        var setting = await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalSyncBackoffLevel, ct);
+        if (setting is not null && setting.Value != "0")
+        {
+            setting.Value = "0";
+            await _uow.SaveChangesAsync(ct);
+        }
+    }
+
+    /// <summary>
+    /// Aplica recuo exponencial após um cStat 656 e bloqueia a consulta pela
+    /// duração calculada (1h, 2h, 4h, 8h… com teto de 12h). Retorna a duração.
+    /// </summary>
+    private async Task<TimeSpan> EscalateBackoffAsync(CancellationToken ct)
+    {
+        var raw = (await _uow.Settings.GetByKeyAsync(SettingKeys.FiscalSyncBackoffLevel, ct))?.Value;
+        var level = int.TryParse(raw, out var parsed) && parsed >= 0 ? parsed : 0;
+
+        var minutes = Math.Min(60 * Math.Pow(2, level), 720); // teto de 12 horas
+        var duration = TimeSpan.FromMinutes(minutes);
+
+        await SaveSettingAsync(SettingKeys.FiscalSyncBackoffLevel, (level + 1).ToString(), ct);
+        await BlockSyncForAsync(duration, ct);
+        _logger.LogWarning("cStat 656: recuo nível {Level}, próxima consulta em {Minutes} min.",
+            level, minutes);
+        return duration;
     }
 
     private async Task BlockSyncForAsync(TimeSpan duration, CancellationToken ct)

@@ -39,6 +39,8 @@ public static class SettingKeys
     public const string FiscalAutoSync = "fiscal.auto_sync";
     /// <summary>Próximo horário (UTC, ISO 8601) em que a consulta DF-e é permitida — evita o cStat 656 "Consumo Indevido".</summary>
     public const string FiscalSyncBlockedUntil = "fiscal.sync_blocked_until";
+    /// <summary>Nível de recuo exponencial após cStat 656 consecutivos (0 = sem penalidade acumulada).</summary>
+    public const string FiscalSyncBackoffLevel = "fiscal.sync_backoff_level";
     // Dados do emitente para a emissão de NF-e própria.
     public const string FiscalEmitName = "fiscal.emit_name";
     public const string FiscalEmitIe = "fiscal.emit_ie";
