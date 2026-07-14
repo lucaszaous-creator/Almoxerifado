@@ -53,9 +53,38 @@ public class FiscalSyncGuardTests : IDisposable
 
         var second = await _service.SyncAsync();
         Assert.True(second.IsFailure);
-        Assert.Contains("1 hora", string.Join(" ", second.Errors));
+        Assert.Contains("656", string.Join(" ", second.Errors));
         // A SEFAZ não foi consultada de novo — o bloqueio é local.
         Assert.Equal(1, _gateway.Calls);
+    }
+
+    [Fact]
+    public async Task Sync_656Consecutivos_AumentaORecuo_ESucessoZera()
+    {
+        _gateway.StatusToReturn = 656;
+        await _service.SyncAsync();
+        var afterFirst = await _context.AppSettings
+            .FirstAsync(s => s.Key == SettingKeys.FiscalSyncBackoffLevel);
+        Assert.Equal("1", afterFirst.Value);
+
+        // Libera o bloqueio local e leva outro 656: o recuo sobe para o nível 2.
+        (await _context.AppSettings.FirstAsync(s => s.Key == SettingKeys.FiscalSyncBlockedUntil))
+            .Value = string.Empty;
+        await _context.SaveChangesAsync();
+        await _service.SyncAsync();
+        var afterSecond = await _context.AppSettings
+            .FirstAsync(s => s.Key == SettingKeys.FiscalSyncBackoffLevel);
+        Assert.Equal("2", afterSecond.Value);
+
+        // Uma consulta bem-sucedida (138) zera a penalidade acumulada.
+        (await _context.AppSettings.FirstAsync(s => s.Key == SettingKeys.FiscalSyncBlockedUntil))
+            .Value = string.Empty;
+        await _context.SaveChangesAsync();
+        _gateway.StatusToReturn = 138;
+        await _service.SyncAsync();
+        var afterSuccess = await _context.AppSettings
+            .FirstAsync(s => s.Key == SettingKeys.FiscalSyncBackoffLevel);
+        Assert.Equal("0", afterSuccess.Value);
     }
 
     [Fact]
