@@ -232,6 +232,39 @@ public partial class FiscalViewModel : ViewModelBase
         await LoadIntoAsync(services);
     });
 
+    /// <summary>
+    /// Relê a Distribuição DF-e desde o início (zera o NSU e o bloqueio de 1 hora).
+    /// Escapatória para quando as notas não aparecem — por exemplo, se o NSU
+    /// avançou além delas ao trocar de ambiente/certificado.
+    /// </summary>
+    [RelayCommand]
+    private Task ResyncFromStartAsync() => RunAsync(async services =>
+    {
+        if (!Dialog.Confirm(
+                "Ressincronizar TODAS as notas do zero?\n\n" +
+                "O sistema relê a Distribuição DF-e da SEFAZ desde o início (últimos meses) " +
+                "e libera o intervalo de 1 hora. Use quando as notas emitidas contra o seu " +
+                "CNPJ não aparecem.\n\n" +
+                "Faça isto apenas uma vez: a SEFAZ bloqueia consultas repetidas em menos de 1 hora.",
+                "Ressincronização completa"))
+            return;
+
+        var fiscal = services.GetRequiredService<IFiscalService>();
+        var result = await fiscal.ResyncFromStartAsync();
+        if (result.IsFailure)
+        {
+            Dialog.ShowError(string.Join("\n", result.Errors));
+            return;
+        }
+
+        Dialog.Notify(result.Value.NewDocuments > 0
+            ? $"{result.Value.NewDocuments} nota(s) recebida(s) da SEFAZ."
+            : "A SEFAZ não retornou notas para este CNPJ neste ambiente.\n\n" +
+              "Confira em Configurações se o ambiente está em PRODUÇÃO (as notas reais não " +
+              "aparecem em homologação) e se o certificado A1 e o CNPJ estão corretos.");
+        await LoadIntoAsync(services);
+    });
+
     [RelayCommand]
     private Task OpenDanfeAsync() => RunAsync(async services =>
     {

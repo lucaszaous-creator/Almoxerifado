@@ -26,6 +26,13 @@ public interface IFiscalService
     Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Relê a Distribuição DF-e desde o início: zera o último NSU e o bloqueio de
+    /// intervalo e sincroniza. Use quando as notas não aparecem por o NSU já ter
+    /// avançado além delas (ex.: após trocar de ambiente/certificado).
+    /// </summary>
+    Task<Result<FiscalSyncSummary>> ResyncFromStartAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Remove as notas fictícias do modo demonstração (recebidas e emitidas) e
     /// libera o bloqueio de sincronização — usado ao desligar o modo demonstração
     /// para que o ambiente real assuma limpo. Retorna quantas notas foram removidas.
@@ -219,6 +226,20 @@ public class FiscalService : IFiscalService
         _logger.LogInformation("Sincronização DF-e concluída: {New} novas, {Updated} atualizadas, ultNSU {Nsu}",
             newCount, updatedCount, ultNsu);
         return Result.Success(new FiscalSyncSummary(newCount, updatedCount, ultNsu));
+    }
+
+    public async Task<Result<FiscalSyncSummary>> ResyncFromStartAsync(CancellationToken ct = default)
+    {
+        if (await IsDemoModeAsync(ct))
+            return await SyncDemoAsync(ct);
+
+        // Zera o ponteiro de leitura e o guard de intervalo; a próxima consulta
+        // relê tudo desde o NSU 0 (a SEFAZ entrega os últimos ~3 meses).
+        await SaveSettingAsync(SettingKeys.FiscalUltNsu, "0", ct);
+        await SaveSettingAsync(SettingKeys.FiscalSyncBlockedUntil, string.Empty, ct);
+        _logger.LogInformation("Ressincronização completa: NSU e bloqueio de intervalo zerados.");
+
+        return await SyncAsync(ct);
     }
 
     private async Task BlockSyncForAsync(TimeSpan duration, CancellationToken ct)
