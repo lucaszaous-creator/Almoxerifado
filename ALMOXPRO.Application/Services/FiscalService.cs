@@ -13,7 +13,14 @@ namespace ALMOXPRO.Application.Services;
 public interface IFiscalService
 {
     Task<PagedResult<FiscalDocumentDto>> SearchAsync(PagedQuery query, FiscalDocumentStatus? status = null,
-        CancellationToken ct = default);
+        DateTime? from = null, DateTime? to = null, int? number = null, CancellationToken ct = default);
+
+    /// <summary>ZIP com os XMLs das notas recebidas que atendem aos filtros (máx. 1000).</summary>
+    Task<Result<byte[]>> ExportXmlZipAsync(FiscalDocumentStatus? status = null, DateTime? from = null,
+        DateTime? to = null, int? number = null, string? search = null, CancellationToken ct = default);
+
+    /// <summary>Resumo para o painel da tela Notas Fiscais (cards + gráfico dos últimos 5 dias).</summary>
+    Task<FiscalSummaryDto> GetSummaryAsync(CancellationToken ct = default);
 
     /// <summary>Sincroniza com a SEFAZ: baixa as notas emitidas contra o CNPJ desde o último NSU.</summary>
     Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default);
@@ -58,9 +65,10 @@ public class FiscalService : IFiscalService
     }
 
     public async Task<PagedResult<FiscalDocumentDto>> SearchAsync(PagedQuery query,
-        FiscalDocumentStatus? status = null, CancellationToken ct = default)
+        FiscalDocumentStatus? status = null, DateTime? from = null, DateTime? to = null,
+        int? number = null, CancellationToken ct = default)
     {
-        var page = await _uow.FiscalDocuments.SearchAsync(query, status, ct);
+        var page = await _uow.FiscalDocuments.SearchAsync(query, status, from, to, number, ct);
         return new PagedResult<FiscalDocumentDto>
         {
             Items = page.Items.Select(d => new FiscalDocumentDto(
@@ -70,6 +78,59 @@ public class FiscalService : IFiscalService
             Page = page.Page,
             PageSize = page.PageSize
         };
+    }
+
+    public async Task<Result<byte[]>> ExportXmlZipAsync(FiscalDocumentStatus? status = null,
+        DateTime? from = null, DateTime? to = null, int? number = null, string? search = null,
+        CancellationToken ct = default)
+    {
+        var page = await _uow.FiscalDocuments.SearchAsync(
+            new PagedQuery { Page = 1, PageSize = 1000, Search = search ?? string.Empty },
+            status, from, to, number, ct);
+        var withXml = page.Items.Where(d => !string.IsNullOrWhiteSpace(d.Xml)).ToList();
+        if (withXml.Count == 0)
+            return Result.Failure<byte[]>("Nenhuma nota com XML encontrada para os filtros informados.");
+
+        using var buffer = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(buffer,
+                   System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var doc in withXml)
+            {
+                var entry = zip.CreateEntry($"NFe-{doc.AccessKey}.xml");
+                await using var stream = entry.Open();
+                await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(doc.Xml), ct);
+            }
+        }
+        return Result.Success(buffer.ToArray());
+    }
+
+    public async Task<FiscalSummaryDto> GetSummaryAsync(CancellationToken ct = default)
+    {
+        var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var chartStart = DateTime.UtcNow.Date.AddDays(-4);
+        var cutoff = monthStart < chartStart ? monthStart : chartStart;
+
+        var receivedDates = await _uow.FiscalDocuments.IssueDatesSinceAsync(cutoff, ct);
+        var issuedDates = await _uow.IssuedNfes.IssueDatesSinceAsync(cutoff, ct);
+        var totalStored = await _uow.FiscalDocuments.CountAllAsync(ct) + await _uow.IssuedNfes.CountAllAsync(ct);
+
+        var issuedMonthValuePage = await _uow.IssuedNfes.SearchAsync(
+            new PagedQuery { Page = 1, PageSize = 1000 }, from: monthStart, ct: ct);
+
+        var days = Enumerable.Range(0, 5)
+            .Select(offset => DateTime.UtcNow.Date.AddDays(offset - 4))
+            .Select(day => new FiscalDayCount(day,
+                receivedDates.Count(d => d.Date == day),
+                issuedDates.Count(d => d.Date == day)))
+            .ToList();
+
+        return new FiscalSummaryDto(
+            totalStored,
+            receivedDates.Count(d => d >= monthStart),
+            issuedDates.Count(d => d >= monthStart),
+            issuedMonthValuePage.Items.Where(n => n.Status == IssuedNfeStatus.Autorizada).Sum(n => n.TotalValue),
+            days);
     }
 
     public async Task<Result<FiscalSyncSummary>> SyncAsync(CancellationToken ct = default)

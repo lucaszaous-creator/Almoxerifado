@@ -69,6 +69,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _fiscalDemoMode;
 
+    /// <summary>Sincroniza a Distribuição DF-e automaticamente a cada ~65 min com o app aberto.</summary>
+    [ObservableProperty]
+    private bool _fiscalAutoSync = true;
+
     /// <summary>Origem do certificado: false = arquivo A1 (.pfx); true = instalado no Windows.</summary>
     [ObservableProperty]
     private bool _fiscalUseWindowsStore;
@@ -172,6 +176,7 @@ public partial class SettingsViewModel : ViewModelBase
         FiscalUf = all.GetValueOrDefault(SettingKeys.FiscalUf) ?? string.Empty;
         FiscalProduction = all.GetValueOrDefault(SettingKeys.FiscalProduction) != "false";
         FiscalDemoMode = all.GetValueOrDefault(SettingKeys.FiscalDemoMode) == "true";
+        FiscalAutoSync = all.GetValueOrDefault(SettingKeys.FiscalAutoSync) != "false";
         FiscalUseWindowsStore = all.GetValueOrDefault(SettingKeys.FiscalCertificateSource) == "store";
 
         FiscalEmitName = all.GetValueOrDefault(SettingKeys.FiscalEmitName) ?? string.Empty;
@@ -220,6 +225,7 @@ public partial class SettingsViewModel : ViewModelBase
     {
         var settings = services.GetRequiredService<ISettingsService>();
         await settings.SetAsync(SettingKeys.FiscalDemoMode, FiscalDemoMode ? "true" : "false");
+        await settings.SetAsync(SettingKeys.FiscalAutoSync, FiscalAutoSync ? "true" : "false");
 
         // No modo demonstração não é preciso certificado nem CNPJ/UF válidos.
         if (FiscalDemoMode)

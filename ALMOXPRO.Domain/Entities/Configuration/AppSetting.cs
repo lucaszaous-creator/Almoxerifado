@@ -35,6 +35,8 @@ public static class SettingKeys
     public const string FiscalCertificateSource = "fiscal.cert_source";
     public const string FiscalCertificateThumbprint = "fiscal.cert_thumbprint";
     public const string FiscalDemoMode = "fiscal.demo_mode";
+    /// <summary>"true" = sincroniza a Distribuição DF-e automaticamente a cada ~65 min com o app aberto.</summary>
+    public const string FiscalAutoSync = "fiscal.auto_sync";
     /// <summary>Próximo horário (UTC, ISO 8601) em que a consulta DF-e é permitida — evita o cStat 656 "Consumo Indevido".</summary>
     public const string FiscalSyncBlockedUntil = "fiscal.sync_blocked_until";
     // Dados do emitente para a emissão de NF-e própria.

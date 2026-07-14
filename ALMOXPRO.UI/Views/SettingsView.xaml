@@ -135,6 +135,9 @@
                                Foreground="{DynamicResource MaterialDesignBodyLight}" />
                     <CheckBox Content="Modo demonstração (testar sem certificado, com notas de exemplo)"
                               IsChecked="{Binding FiscalDemoMode}" Margin="0,0,0,4" />
+                    <CheckBox Content="Sincronizar com a SEFAZ automaticamente (a cada ~1h, com o app aberto)"
+                              IsChecked="{Binding FiscalAutoSync}" Margin="0,0,0,4"
+                              ToolTip="Consulta a Distribuição DF-e em segundo plano respeitando o intervalo mínimo exigido pela SEFAZ — as notas novas aparecem sozinhas na tela Notas Fiscais" />
                     <TextBlock Text="Ligue para experimentar o fluxo de NF-e (sincronizar, ciência, DANFE, recusar) sem SEFAZ. Desligue para usar o certificado real."
                                TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"
                                Foreground="{DynamicResource MaterialDesignBodyLight}" />

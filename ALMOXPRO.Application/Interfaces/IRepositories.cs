@@ -134,7 +134,10 @@ public interface IFiscalDocumentRepository : IRepository<FiscalDocument>
 {
     Task<FiscalDocument?> GetByAccessKeyAsync(string accessKey, CancellationToken ct = default);
     Task<PagedResult<FiscalDocument>> SearchAsync(PagedQuery query, FiscalDocumentStatus? status = null,
-        CancellationToken ct = default);
+        DateTime? from = null, DateTime? to = null, int? number = null, CancellationToken ct = default);
+    Task<int> CountAllAsync(CancellationToken ct = default);
+    /// <summary>Datas de emissão a partir do corte (para o painel de resumo).</summary>
+    Task<List<DateTime>> IssueDatesSinceAsync(DateTime cutoffUtc, CancellationToken ct = default);
 }
 
 public interface IIssuedNfeRepository : IRepository<IssuedNfe>
@@ -142,7 +145,11 @@ public interface IIssuedNfeRepository : IRepository<IssuedNfe>
     /// <summary>Maior número já usado na série (0 quando não há notas na série).</summary>
     Task<int> GetLastNumberAsync(int series, CancellationToken ct = default);
 
-    Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, CancellationToken ct = default);
+    Task<PagedResult<IssuedNfe>> SearchAsync(PagedQuery query, DateTime? from = null, DateTime? to = null,
+        int? number = null, CancellationToken ct = default);
+    Task<int> CountAllAsync(CancellationToken ct = default);
+    /// <summary>Datas de emissão a partir do corte (para o painel de resumo).</summary>
+    Task<List<DateTime>> IssueDatesSinceAsync(DateTime cutoffUtc, CancellationToken ct = default);
 }
 
 public interface ICostCenterRepository : IRepository<CostCenter>;

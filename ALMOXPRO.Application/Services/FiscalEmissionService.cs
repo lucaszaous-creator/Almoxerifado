@@ -52,7 +52,15 @@ public record IssueNfeInput(
 
 public interface IFiscalEmissionService
 {
-    Task<PagedResult<IssuedNfeDto>> SearchAsync(PagedQuery query, CancellationToken ct = default);
+    Task<PagedResult<IssuedNfeDto>> SearchAsync(PagedQuery query, DateTime? from = null, DateTime? to = null,
+        int? number = null, CancellationToken ct = default);
+
+    /// <summary>ZIP com os XMLs (procNFe) das notas emitidas que atendem aos filtros (máx. 1000).</summary>
+    Task<Result<byte[]>> ExportXmlZipAsync(DateTime? from = null, DateTime? to = null, int? number = null,
+        string? search = null, CancellationToken ct = default);
+
+    /// <summary>DANFE de pré-visualização do rascunho, sem enviar à SEFAZ nem gravar.</summary>
+    Task<Result<byte[]>> PreviewDanfePdfAsync(IssueNfeInput input, CancellationToken ct = default);
 
     /// <summary>Monta, numera, assina e envia a NF-e; grava o procNFe autorizado.</summary>
     Task<Result<IssuedNfeDto>> IssueAsync(IssueNfeInput input, CancellationToken ct = default);
@@ -88,9 +96,10 @@ public class FiscalEmissionService : IFiscalEmissionService
         _logger = logger;
     }
 
-    public async Task<PagedResult<IssuedNfeDto>> SearchAsync(PagedQuery query, CancellationToken ct = default)
+    public async Task<PagedResult<IssuedNfeDto>> SearchAsync(PagedQuery query, DateTime? from = null,
+        DateTime? to = null, int? number = null, CancellationToken ct = default)
     {
-        var page = await _uow.IssuedNfes.SearchAsync(query, ct);
+        var page = await _uow.IssuedNfes.SearchAsync(query, from, to, number, ct);
         return new PagedResult<IssuedNfeDto>
         {
             Items = page.Items.Select(ToDto).ToList(),
@@ -100,11 +109,36 @@ public class FiscalEmissionService : IFiscalEmissionService
         };
     }
 
-    public async Task<Result<IssuedNfeDto>> IssueAsync(IssueNfeInput input, CancellationToken ct = default)
+    public async Task<Result<byte[]>> ExportXmlZipAsync(DateTime? from = null, DateTime? to = null,
+        int? number = null, string? search = null, CancellationToken ct = default)
+    {
+        var page = await _uow.IssuedNfes.SearchAsync(
+            new PagedQuery { Page = 1, PageSize = 1000, Search = search ?? string.Empty },
+            from, to, number, ct);
+        if (page.Items.Count == 0)
+            return Result.Failure<byte[]>("Nenhuma nota emitida encontrada para os filtros informados.");
+
+        using var buffer = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(buffer,
+                   System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var nfe in page.Items)
+            {
+                var entry = zip.CreateEntry($"NFe-{nfe.AccessKey}-procNFe.xml");
+                await using var stream = entry.Open();
+                await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(nfe.Xml), ct);
+            }
+        }
+        return Result.Success(buffer.ToArray());
+    }
+
+    /// <summary>Valida a entrada e monta o rascunho completo (chave, numeração, impostos) sem enviar nem gravar.</summary>
+    private async Task<Result<(NfeDraft Draft, bool Demo, FiscalConfig? Config)>> PrepareDraftAsync(
+        IssueNfeInput input, CancellationToken ct)
     {
         var validation = Validate(input);
         if (validation.IsFailure)
-            return Result.Failure<IssuedNfeDto>(validation.Errors);
+            return Result.Failure<(NfeDraft, bool, FiscalConfig?)>(validation.Errors);
 
         var demo = await FiscalConfigLoader.IsDemoModeAsync(_uow, ct);
 
@@ -113,13 +147,13 @@ public class FiscalEmissionService : IFiscalEmissionService
         {
             var configResult = await FiscalConfigLoader.LoadAsync(_uow, ct);
             if (configResult.IsFailure)
-                return Result.Failure<IssuedNfeDto>(configResult.Errors);
+                return Result.Failure<(NfeDraft, bool, FiscalConfig?)>(configResult.Errors);
             config = configResult.Value;
         }
 
         var emitterResult = await LoadEmitterAsync(demo, config, ct);
         if (emitterResult.IsFailure)
-            return Result.Failure<IssuedNfeDto>(emitterResult.Errors);
+            return Result.Failure<(NfeDraft, bool, FiscalConfig?)>(emitterResult.Errors);
         var emitter = emitterResult.Value;
 
         var series = await GetSeriesAsync(ct);
@@ -201,6 +235,16 @@ public class FiscalEmissionService : IFiscalEmissionService
             cofinsRate,
             input.IsTaxedSale && input.PisCofinsOutras);
 
+        return Result.Success<(NfeDraft, bool, FiscalConfig?)>((draft, demo, config));
+    }
+
+    public async Task<Result<IssuedNfeDto>> IssueAsync(IssueNfeInput input, CancellationToken ct = default)
+    {
+        var prepared = await PrepareDraftAsync(input, ct);
+        if (prepared.IsFailure)
+            return Result.Failure<IssuedNfeDto>(prepared.Errors);
+        var (draft, demo, config) = prepared.Value;
+
         string protocol;
         string procXml;
         if (demo)
@@ -230,13 +274,13 @@ public class FiscalEmissionService : IFiscalEmissionService
 
         var entity = new IssuedNfe
         {
-            AccessKey = accessKey,
-            Number = number,
-            Series = series,
+            AccessKey = draft.AccessKey,
+            Number = draft.Number,
+            Series = draft.Series,
             NatureOfOperation = draft.NatureOfOperation,
-            RecipientCnpjCpf = recipientDigits,
+            RecipientCnpjCpf = draft.Recipient.CnpjCpf,
             RecipientName = draft.Recipient.Name,
-            IssuedAt = issuedAt.UtcDateTime,
+            IssuedAt = draft.IssuedAt.UtcDateTime,
             TotalValue = draft.TotalValue,
             Status = IssuedNfeStatus.Autorizada,
             Protocol = protocol,
@@ -248,8 +292,29 @@ public class FiscalEmissionService : IFiscalEmissionService
         await _uow.SaveChangesAsync(ct);
 
         _logger.LogInformation("NF-e {Serie}/{Numero} emitida (chave {Chave}, protocolo {Protocolo}, demo: {Demo})",
-            series, number, accessKey, protocol, demo);
+            draft.Series, draft.Number, draft.AccessKey, protocol, demo);
         return Result.Success(ToDto(entity));
+    }
+
+    /// <summary>
+    /// DANFE de pré-visualização do rascunho (sem enviar à SEFAZ e sem gravar):
+    /// usa o XML simulado com protocolo fictício, útil para conferir a nota
+    /// importada do TXT do PMS antes da emissão.
+    /// </summary>
+    public async Task<Result<byte[]>> PreviewDanfePdfAsync(IssueNfeInput input, CancellationToken ct = default)
+    {
+        var prepared = await PrepareDraftAsync(input, ct);
+        if (prepared.IsFailure)
+            return Result.Failure<byte[]>(prepared.Errors);
+
+        try
+        {
+            return Result.Success(_danfe.GeneratePdf(IssuedNfeDemoXml.BuildProcNfe(prepared.Value.Draft)));
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<byte[]>($"Não foi possível gerar a pré-visualização: {ex.Message}");
+        }
     }
 
     public async Task<Result> CancelAsync(int id, string justification, CancellationToken ct = default)
