@@ -89,6 +89,31 @@ public class FiscalSyncGuardTests : IDisposable
         Assert.Equal(1, _gateway.Calls);
     }
 
+    [Fact]
+    public async Task ResyncFromStart_ZeraNsuEBloqueio_ELeDoInicio()
+    {
+        // NSU já avançado e bloqueio ativo, como se as notas tivessem ficado para
+        // trás (ex.: após trocar de ambiente) e o guard de 1 hora travasse a consulta.
+        _context.AppSettings.AddRange(
+            new AppSetting { Key = SettingKeys.FiscalUltNsu, Value = "000000000000500" },
+            new AppSetting
+            {
+                Key = SettingKeys.FiscalSyncBlockedUntil,
+                Value = DateTime.UtcNow.AddHours(1).ToString("O")
+            });
+        _context.SaveChanges();
+        _gateway.StatusToReturn = 137;
+
+        var result = await _service.ResyncFromStartAsync();
+
+        Assert.True(result.IsSuccess);
+        // Releu desde o início, apesar do bloqueio ativo, e a partir do NSU 0.
+        Assert.Equal(1, _gateway.Calls);
+        Assert.Equal("0", _gateway.LastUltNsu);
+        var nsu = await _context.AppSettings.FirstAsync(s => s.Key == SettingKeys.FiscalUltNsu);
+        Assert.Equal("0", nsu.Value);
+    }
+
     public void Dispose()
     {
         _context.Dispose();
@@ -100,10 +125,12 @@ public class FiscalSyncGuardTests : IDisposable
     {
         public int Calls;
         public int StatusToReturn = 137;
+        public string LastUltNsu = string.Empty;
 
         public Task<FiscalSyncResult> FetchDocumentsAsync(FiscalConfig config, string ultNsu, CancellationToken ct = default)
         {
             Calls++;
+            LastUltNsu = ultNsu;
             return Task.FromResult(new FiscalSyncResult(StatusToReturn,
                 StatusToReturn == 656 ? "Rejeicao: Consumo Indevido" : "Nenhum documento localizado",
                 ultNsu, ultNsu, []));

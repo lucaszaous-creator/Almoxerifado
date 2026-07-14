@@ -118,6 +118,14 @@
                                 <TextBlock Text="SINCRONIZAR SEFAZ" Margin="6,0,0,0" />
                             </StackPanel>
                         </Button>
+                        <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding ResyncFromStartCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
+                                ToolTip="Reler todas as notas do zero e liberar o intervalo de 1 hora (use quando as notas não aparecem)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Sync" VerticalAlignment="Center" />
+                                <TextBlock Text="RESSINCRONIZAR TUDO" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
                         <Button DockPanel.Dock="Right" Margin="0,0,8,0" Command="{Binding OpenDanfeCommand}"
                                 Style="{StaticResource MaterialDesignOutlinedButton}" VerticalAlignment="Center"
                                 IsEnabled="{Binding Selected, Converter={StaticResource NotNullToBool}}"
