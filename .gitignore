@@ -1,42 +1,5 @@
-# .NET / ALMOX PRO
-bin/
-obj/
-*.user
-.vs/
-*.suo
-publish/
-TestResults/
-appsettings.local.json
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+node_modules/
+.venv/
+tools/render-anatomia/bp/
+*.stl
 .DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env
-.env*.local
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# supabase
-.branches
-.temp
