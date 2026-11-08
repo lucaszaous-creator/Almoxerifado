@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-100 text-slate-800 antialiased;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respeita a preferência de reduzir animações */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Tema escuro (preto neutro / zinc) ---- */
+.dark body {
+  background-color: #0a0a0a;
+  color: #ededed;
+}
+.dark .bg-white,
+.dark .bg-white\/80,
+.dark .bg-white\/95 {
+  background-color: #171717 !important;
+}
+.dark .bg-slate-50 {
+  background-color: #121212 !important;
+}
+.dark .bg-slate-100 {
+  background-color: #262626 !important;
+}
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #ededed !important;
+}
+.dark .text-slate-600 {
+  color: #d4d4d4 !important;
+}
+.dark .text-slate-500 {
+  color: #a3a3a3 !important;
+}
+.dark .text-slate-400,
+.dark .text-slate-300 {
+  color: #737373 !important;
+}
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-slate-50,
+.dark .border-slate-300 {
+  border-color: #2a2a2a !important;
+}
+.dark .card {
+  background-color: #171717 !important;
+  border-color: #2a2a2a !important;
+}
+.dark .input {
+  background-color: #0f0f0f !important;
+  border-color: #3a3a3a !important;
+  color: #ededed !important;
+}
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-100:hover {
+  background-color: #1f1f1f !important;
+}
+.dark .btn-secondary {
+  background-color: #171717 !important;
+  border-color: #3a3a3a !important;
+  color: #d4d4d4 !important;
+}
+.dark .btn-secondary:hover {
+  background-color: #1f1f1f !important;
+}
+.dark .bg-slate-200 {
+  background-color: #3a3a3a !important;
+}
+.dark .bg-black\/30,
+.dark .bg-black\/40 {
+  background-color: rgb(0 0 0 / 0.65) !important;
+}
+
+/* Etiquetas sempre em branco/preto (leitura e impressão), inclusive no dark */
+.etiqueta,
+.dark .etiqueta {
+  background-color: #fff !important;
+  color: #000 !important;
+  border-color: #cbd5e1 !important;
+}
+
+@media print {
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .etiquetas-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .etiqueta {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm shadow-brand-600/20 hover:bg-brand-700 hover:shadow-md hover:shadow-brand-600/25 focus-visible:ring-brand-400;
+  }
+  .btn-secondary {
+    @apply btn border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-slate-300;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700 focus-visible:ring-rose-400;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-600;
+  }
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-sm;
+  }
+  .card-hover {
+    @apply transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-slate-800;
+  }
+  .page-sub {
+    @apply text-sm text-slate-500;
+  }
+}
+
+/* Rolagem mais discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.dark *::-webkit-scrollbar-thumb {
+  background-color: rgb(82 82 82 / 0.6);
+}

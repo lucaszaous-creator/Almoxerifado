@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Version>1.0.0</Version>
+    <Authors>ALMOX PRO</Authors>
+    <Product>ALMOX PRO - Gestão de Almoxarifado</Product>
+  </PropertyGroup>
+</Project>

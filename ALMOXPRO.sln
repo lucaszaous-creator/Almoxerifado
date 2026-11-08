@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Domain", "ALMOXPRO.Domain\ALMOXPRO.Domain.csproj", "{2D211573-1120-41CC-9154-B4908CE06A35}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Shared", "ALMOXPRO.Shared\ALMOXPRO.Shared.csproj", "{C8666E41-A3DE-4778-86A5-B26DF75EA64E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Application", "ALMOXPRO.Application\ALMOXPRO.Application.csproj", "{890E04B3-6F26-495A-A04B-DFB7EECE8BE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Persistence", "ALMOXPRO.Persistence\ALMOXPRO.Persistence.csproj", "{3D45ADF5-A454-4815-9DF2-67AD07207F56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Infrastructure", "ALMOXPRO.Infrastructure\ALMOXPRO.Infrastructure.csproj", "{6FED6E23-8B59-4E37-91C2-C1960FF085BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.UI", "ALMOXPRO.UI\ALMOXPRO.UI.csproj", "{44A8A3EE-B9C3-4F95-B3A8-2B22441CFFD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ALMOXPRO.Tests", "ALMOXPRO.Tests\ALMOXPRO.Tests.csproj", "{36BC1FF5-99A0-4582-A371-22E2E4EBAD66}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2D211573-1120-41CC-9154-B4908CE06A35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D211573-1120-41CC-9154-B4908CE06A35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D211573-1120-41CC-9154-B4908CE06A35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D211573-1120-41CC-9154-B4908CE06A35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8666E41-A3DE-4778-86A5-B26DF75EA64E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8666E41-A3DE-4778-86A5-B26DF75EA64E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8666E41-A3DE-4778-86A5-B26DF75EA64E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8666E41-A3DE-4778-86A5-B26DF75EA64E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{890E04B3-6F26-495A-A04B-DFB7EECE8BE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{890E04B3-6F26-495A-A04B-DFB7EECE8BE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{890E04B3-6F26-495A-A04B-DFB7EECE8BE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{890E04B3-6F26-495A-A04B-DFB7EECE8BE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D45ADF5-A454-4815-9DF2-67AD07207F56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D45ADF5-A454-4815-9DF2-67AD07207F56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D45ADF5-A454-4815-9DF2-67AD07207F56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D45ADF5-A454-4815-9DF2-67AD07207F56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FED6E23-8B59-4E37-91C2-C1960FF085BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FED6E23-8B59-4E37-91C2-C1960FF085BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FED6E23-8B59-4E37-91C2-C1960FF085BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FED6E23-8B59-4E37-91C2-C1960FF085BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44A8A3EE-B9C3-4F95-B3A8-2B22441CFFD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44A8A3EE-B9C3-4F95-B3A8-2B22441CFFD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44A8A3EE-B9C3-4F95-B3A8-2B22441CFFD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44A8A3EE-B9C3-4F95-B3A8-2B22441CFFD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36BC1FF5-99A0-4582-A371-22E2E4EBAD66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36BC1FF5-99A0-4582-A371-22E2E4EBAD66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36BC1FF5-99A0-4582-A371-22E2E4EBAD66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36BC1FF5-99A0-4582-A371-22E2E4EBAD66}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
